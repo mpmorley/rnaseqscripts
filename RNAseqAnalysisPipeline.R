@@ -11,6 +11,7 @@ library(edgeR)
 library(ggplot2)
 require(org.Mm.eg.db)
 require(EnsDb.Mmusculus.v75)
+require(SPIA)
 
 dir='mm9/STAR'
 projectname='NANCI_Effects_v2'
@@ -103,6 +104,8 @@ load('~/dsdata/projects/data_public/MSigDB/mouse_c3_v5.rdata')
 c3.indices <- ids2indices(Mm.c3,v$genes$ENTREZID)
 load('~/dsdata/projects/data_public/MSigDB/mouse_c4_v5.rdata')
 c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
+load('~/dsdata/projects/data_public/MSigDB/mouse_GO.rdata')
+GO.indices <- ids2indices(Mm.GO,v$genes$ENTREZID)
 ##################################################################
 
 #Remove the '-' from the constrat name, it will cause issues down stream
@@ -114,6 +117,8 @@ camera <- vector(mode="list", length=length(contrastnames))
 names(camera) <- contrastnames
 topgo <-vector(mode="list", length=length(contrastnames))
 names(topgo) <- contrastnames
+spia<-  vector(mode="list", length=length(contrastnames))
+names(spia) <- contrastnames
 
 
 i=1
@@ -122,16 +127,31 @@ for(i in 1:length(contrastnames)){
   print(contrastnames[i])
   limma[[contrastnames[i]]] <- Cleanup(topTable(fit2,coef=i,n=Inf,p.value=1)) 
   topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]])
+  
+  #for each limma data (corresponding to the contrast), run SPIA
+  k=limma[[contrastnames[i]]]
+  limma_sel <- k[which(abs(k$fc) > 2 & k$adj.P.Val < 0.05),]
+  all_genes = as.numeric(k$ENTREZID)
+  sig_genes = limma_sel$fc
+  names(sig_genes) = limma_sel$ENTREZID 
+  sig_genes = sig_genes[complete.cases(names(sig_genes))]
+  sig_genes = sig_genes[unique(names(sig_genes))] 
+  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism="mmu")
+  
+  #run camera
   res.h <- camera(v, h.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
   res.c2 <- camera(v, c2.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
+  res.GO <- camera(v, GO.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
   #res.c3 <- camera(v, c3.indices, design,i,inter.gene.cor=0.01)
   #res.c4 <- camera(v, c4.indices, design,i,inter.gene.cor=0.01)
-  camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices))
+  camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices),GO=list(camera_result=res.GO,indices=GO.indices))
 }
+
+######## run spia ######
 
 
 ############ Save list of results ##############
-result <- list(eset=eset,limma=limma,camera=camera, topgo=topgo)
+result <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
 save(result,file=paste(projectname, ".RData",sep=''))
 
 
