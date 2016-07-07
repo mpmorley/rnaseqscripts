@@ -104,7 +104,7 @@ load('~/dsdata/projects/data_public/MSigDB/mouse_c3_v5.rdata')
 c3.indices <- ids2indices(Mm.c3,v$genes$ENTREZID)
 load('~/dsdata/projects/data_public/MSigDB/mouse_c4_v5.rdata')
 c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
-load('~/dsdata/projects/data_public/MSigDB/mouse_GO.rdata')
+load('~/fujfs/d1/projects/data_public/MSigDB/mouse_GO.rdata')
 GO.indices <- ids2indices(Mm.GO,v$genes$ENTREZID)
 ##################################################################
 
