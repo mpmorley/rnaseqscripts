@@ -147,8 +147,6 @@ for(i in 1:length(contrastnames)){
   camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices),GO=list(camera_result=res.GO,indices=GO.indices))
 }
 
-######## run spia ######
-
 
 ############ Save list of results ##############
 result <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
