@@ -131,12 +131,16 @@ for(i in 1:length(contrastnames)){
   #for each limma data (corresponding to the contrast), run SPIA
   k=limma[[contrastnames[i]]]
   limma_sel <- k[which(abs(k$fc) > 2 & k$adj.P.Val < 0.05),]
+  if(nrow(limma_sel)>0){
   all_genes = as.numeric(k$ENTREZID)
   sig_genes = limma_sel$fc
   names(sig_genes) = limma_sel$ENTREZID 
   sig_genes = sig_genes[complete.cases(names(sig_genes))]
   sig_genes = sig_genes[unique(names(sig_genes))] 
-  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism="mmu")
+  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism="mmu")}
+  else{
+    spia[[contrastnames[i]]] <- data.frame()
+  }
   
   #run camera
   res.h <- camera(v, h.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
