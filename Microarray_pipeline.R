@@ -18,7 +18,6 @@ library(ggplot2)
 require(org.Mm.eg.db)
 require(EnsDb.Mmusculus.v75)
 require(SPIA)
-require(ReactomePA)
 
 projectname='Falcor_Naphthalene'
 

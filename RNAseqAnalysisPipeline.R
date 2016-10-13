@@ -12,7 +12,6 @@ library(ggplot2)
 require(org.Mm.eg.db)
 require(EnsDb.Mmusculus.v75)
 require(SPIA)
-require(ReactomePA)
 
 dir='mm9/STAR'
 projectname='NANCI_Effects_v2'
@@ -42,6 +41,7 @@ rownames(cts)<-dataset$gene
 
 #Get a data.frame of gene annotations, this may be not be the same size of input IDs. 
 genenames <- GeneAnnotate(as.character(dataset$gene))
+rownames(genenames)=genenames$ENSEMBL
 
 ############### Remove some Samples 
 
@@ -120,10 +120,6 @@ topgo <-vector(mode="list", length=length(contrastnames))
 names(topgo) <- contrastnames
 spia<-  vector(mode="list", length=length(contrastnames))
 names(spia) <- contrastnames
-eplot<-  vector(mode="list", length=length(contrastnames))
-names(eplot) <- contrastnames
-gsea<-  vector(mode="list", length=length(contrastnames))
-names(gsea) <- contrastnames
 
 
 i=1
@@ -133,21 +129,8 @@ for(i in 1:length(contrastnames)){
   limma[[contrastnames[i]]] <- Cleanup(topTable(fit2,coef=i,n=Inf,p.value=1)) 
   topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]])
   
-  #for each limma data (corresponding to the contrast), run ReactomePA
   k=limma[[contrastnames[i]]]
-  genes = k$fc
-  names(genes) = k$ENTREZID 
-  genes = genes[complete.cases(names(genes))]
-  genes = genes[unique(names(genes))] 
-  ss=genes[order(-genes)]
-  y <- gsePathway(ss,organism="mouse")
-  gsea[[contrastnames[i]]]=y
-  if(nrow(summary(y))>0){
-    eplot[[contrastnames[i]]] <-summary(y)}
-  else{
-    eplot[[contrastnames[i]]] <- data.frame()
-  }
-  
+
   #for each limma data (corresponding to the contrast), run SPIA
   limma_sel <- k[which(abs(k$fc) > 2 & k$adj.P.Val < 0.05),]
   if(nrow(limma_sel)>0){
@@ -172,7 +155,7 @@ for(i in 1:length(contrastnames)){
 
 
 ############ Save list of results ##############
-results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia,eplot=eplot,gsea=gsea)
+results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
 save(results,file=paste(projectname, ".RData",sep=''))
 
 
