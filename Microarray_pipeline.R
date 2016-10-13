@@ -43,14 +43,13 @@ voom=exprs(eset.bk)
 pData=pData(eset.bk)
 genenames=pData(featureData(eset.bk))
 
-load("/Users/bapoorva/Desktop/ANALYSIS/refgenome/untitled/Mus_musculus.NCBIM37.67.RData")
+load("/Users/bapoorva/Desktop/ANALYSIS/refgenome/mm9/Mus_musculus.NCBIM37.67.RData")
 genes <- geneannotation %>%
-      dplyr::rename(biotype=gene_biotype,Chrom=seqid, SYMBOL=gene_name, ENSEMBL=gene_id) %>%
+      dplyr::rename(biotype=gene_biotype,Chrom=chr, SYMBOL=gene_name, ENSEMBL=gene_id) %>%
       mutate(geneloc=paste(Chrom,':',start,'-',end,sep='')) %>%
       select(SYMBOL,ENSEMBL,ENTREZID,biotype,geneloc) %>% arrange(ENSEMBL)
 
-# pos <- ensembldb::genes(EnsDb.Mmusculus.v75,columns=c("gene_id","gene_biotype","seq_name"),
-#                         return.type="data.frame")
+
 final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
 rownames(final_res)=make.names(final_res$ID,unique=TRUE)
 p=strsplit(rownames(final_res),"X")
@@ -58,10 +57,6 @@ m=sapply(p,"[",2)
 rownames(final_res)=m
 genenames=final_res
 
-# anno2=left_join(genenames,genes,by=c("ENSEMBL"="ENSEMBL")) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,gene_biotype.y,seq_name,geneloc)
-# colnames(anno2)=c("ID","SYMBOL","GENENAME","ENTREZID","ENSEMBL","GenestoProbe","biotype","seq_name","geneloc")
-# genenames=anno2
-# rownames(genenames)=genenames$ID
 
 #create design matrix
 (design <-model.matrix(~0+maineffect,data=pData))
@@ -80,8 +75,7 @@ eset<- ExpressionSet(assayData=as.matrix(voom),phenoData=phenoData,featureData=f
 ############# Create contrast matrix and fit models ################
 
 # Use the combn functio to make all possible contrasts 
-#f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
-f="FalcorKO-WildType"
+f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
 (contrast.matrix <- makeContrasts(contrasts = f,levels=design))
 fit <- lmFit(eset,design)
 fit2 <- contrasts.fit(fit, contrast.matrix)
