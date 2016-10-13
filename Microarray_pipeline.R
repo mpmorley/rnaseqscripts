@@ -43,12 +43,25 @@ voom=exprs(eset.bk)
 pData=pData(eset.bk)
 genenames=pData(featureData(eset.bk))
 
-load("/Users/bapoorva/Desktop/ANALYSIS/refgenome/mm9/Mus_musculus.NCBIM37.67.RData")
-genes <- geneannotation %>%
-      dplyr::rename(biotype=gene_biotype,Chrom=chr, SYMBOL=gene_name, ENSEMBL=gene_id) %>%
-      mutate(geneloc=paste(Chrom,':',start,'-',end,sep='')) %>%
-      select(SYMBOL,ENSEMBL,ENTREZID,biotype,geneloc) %>% arrange(ENSEMBL)
+# GeneAnnotate <- function(ids,organism="Mm") {
+#   if(organism=="Mm"){
+#     load("/Users/bapoorva/Desktop/ANALYSIS/refgenome/mm9/Mus_musculus.NCBIM37.67.RData")
+#   }
+#   else if(organism=="Hs"){
+#     load('/Users/bapoorva/Desktop/ANALYSIS/refgenome/hg19/gencode.v19.annotation.RData')
+#   }else{
+#     stop("Wrong organism")
+#   }
+#   genes <- geneannotation %>% filter (gene_id %in% ids) %>%
+#     dplyr::rename(biotype=gene_biotype, SYMBOL=gene_name, ENSEMBL=gene_id) %>%
+#     mutate(geneloc=paste(chr,':',start,'-',end,sep='')) %>%
+#     dplyr::select(SYMBOL,ENSEMBL,ENTREZID,biotype,geneloc) %>% arrange(ENSEMBL)
+# genes <-as.data.frame(genes)
+#   rownames(genes)=genes$ID
+#   return(genes)
+# }
 
+genes <- GeneAnnotate(as.character(genenames$ENSEMBL))
 
 final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
 rownames(final_res)=make.names(final_res$ID,unique=TRUE)
@@ -102,10 +115,10 @@ topgo <-vector(mode="list", length=length(contrastnames))
 names(topgo) <- contrastnames
 spia<-  vector(mode="list", length=length(contrastnames))
 names(spia) <- contrastnames
-eplot<-  vector(mode="list", length=length(contrastnames))
-names(eplot) <- contrastnames
-gsea<-  vector(mode="list", length=length(contrastnames))
-names(gsea) <- contrastnames
+# eplot<-  vector(mode="list", length=length(contrastnames))
+# names(eplot) <- contrastnames
+# gsea<-  vector(mode="list", length=length(contrastnames))
+# names(gsea) <- contrastnames
 
 
 i=1
@@ -115,20 +128,20 @@ for(i in 1:length(contrastnames)){
   limma[[contrastnames[i]]] <- Cleanup(topTable(fit2,coef=i,n=Inf,p.value=1)) 
   topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]])
   
-  #for each limma data (corresponding to the contrast), run ReactomePA
-  k=limma[[contrastnames[i]]]
-  genes = k$fc
-  names(genes) = k$ENTREZID 
-  genes = genes[complete.cases(names(genes))]
-  genes = genes[unique(names(genes))] 
-  ss=genes[order(-genes)]
-  y <- gsePathway(ss,organism="mouse")
-  gsea[[contrastnames[i]]]=y
-  if(nrow(summary(y))>0){
-    eplot[[contrastnames[i]]] <-summary(y)}
-  else{
-    eplot[[contrastnames[i]]] <- data.frame()
-  }
+#   #for each limma data (corresponding to the contrast), run ReactomePA
+   k=limma[[contrastnames[i]]]
+#   genes = k$fc
+#   names(genes) = k$ENTREZID 
+#   genes = genes[complete.cases(names(genes))]
+#   genes = genes[unique(names(genes))] 
+#   ss=genes[order(-genes)]
+#   y <- gsePathway(ss,organism="mouse")
+#   gsea[[contrastnames[i]]]=y
+#   if(nrow(summary(y))>0){
+#     eplot[[contrastnames[i]]] <-summary(y)}
+#   else{
+#     eplot[[contrastnames[i]]] <- data.frame()
+#   }
   
   #for each limma data (corresponding to the contrast), run SPIA
   limma_sel <- k[which(abs(k$fc) > 2 & k$adj.P.Val < 0.05),]
@@ -154,5 +167,7 @@ for(i in 1:length(contrastnames)){
 
 
 ############ Save list of results ##############
-results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia,eplot=eplot,gsea=gsea)
+  results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
 save(results,file=paste(projectname, ".RData",sep=''))
+
+
