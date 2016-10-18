@@ -42,24 +42,6 @@ voom=exprs(eset.bk)
 pData=pData(eset.bk)
 genenames=pData(featureData(eset.bk))
 
-# GeneAnnotate <- function(ids,organism="Mm") {
-#   if(organism=="Mm"){
-#     load("/Users/bapoorva/Desktop/ANALYSIS/refgenome/mm9/Mus_musculus.NCBIM37.67.RData")
-#   }
-#   else if(organism=="Hs"){
-#     load('/Users/bapoorva/Desktop/ANALYSIS/refgenome/hg19/gencode.v19.annotation.RData')
-#   }else{
-#     stop("Wrong organism")
-#   }
-#   genes <- geneannotation %>% filter (gene_id %in% ids) %>%
-#     dplyr::rename(biotype=gene_biotype, SYMBOL=gene_name, ENSEMBL=gene_id) %>%
-#     mutate(geneloc=paste(chr,':',start,'-',end,sep='')) %>%
-#     dplyr::select(SYMBOL,ENSEMBL,ENTREZID,biotype,geneloc) %>% arrange(ENSEMBL)
-# genes <-as.data.frame(genes)
-#   rownames(genes)=genes$ID
-#   return(genes)
-# }
-
 genes <- GeneAnnotate(as.character(genenames$ENSEMBL))
 
 final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
@@ -99,10 +81,10 @@ load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_H_v5p1.rdata')
 h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
 load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_c2_v5p1.rdata')
 c2.indices <- ids2indices(Mm.c2,genenames$ENTREZID)
-load('/Users/bapoorva/Desktop/ANALYSIS/msigdb//mouse_c3_v5p2.rdata')
-c3.indices <- ids2indices(Mm.c3,v$genes$ENTREZID)
-load('/Users/bapoorva/Desktop/ANALYSIS/msigdb//mouse_c4_v5p2.rdata')
-c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
+load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_c3_v5p2.rdata')
+c3.indices <- ids2indices(Mm.c3,genenames$ENTREZID)
+load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_c4_v5p2.rdata')
+c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
 load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_GO.rdata')
 GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
 
