@@ -6,7 +6,9 @@ library(limma)
 require(EnsDb.Mmusculus.v75)
 require(devtools)
 install_github('mpmorley/ExpressExtras')
+install_github('bapoorva/annoTools')
 library(ExpressExtras)
+library(annoTool)
 library(plyr)
 library(dplyr)
 library(tidyr)
@@ -105,6 +107,9 @@ load('/Users/bapoorva/Desktop/ANALYSIS/msigdb//mouse_c4_v5p2.rdata')
 c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
 load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_GO.rdata')
 GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
+
+
+
 ##################################################################
 
 #Remove the '-' from the constrat name, it will cause issues down stream
