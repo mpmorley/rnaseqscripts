@@ -103,15 +103,15 @@ fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
 
-if(pData$organism=="human"){
+if(unique(pData$organism)=="human"){
   load( '/fujfs/d1/projects/data_public/MSigDB/human_H_v5.rdata')
-  h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
+  h.indices <- ids2indices(Hs.H,genenames$ENTREZID)
   load(' /fujfs/d1/projects/data_public/MSigDB/human_c2_v5.rdata')
-  c2.indices <- ids2indices(Mm.c2,genenames$ENTREZID)
+  c2.indices <- ids2indices(Hs.c2,genenames$ENTREZID)
   load(' /fujfs/d1/projects/data_public/MSigDB/human_c3_v5.rdata')
-  c3.indices <- ids2indices(Mm.c3,genenames$ENTREZID)
+  c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
   load(' /fujfs/d1/projects/data_public/MSigDB/human_c4_v5.rdata')
-  c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
+  c4.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
 }else
 {
   load( '/fujfs/d1/projects/data_public/MSigDB/mouse_H_v5.rdata')
