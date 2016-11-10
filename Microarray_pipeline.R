@@ -43,19 +43,19 @@ eset.bk <-GetMainProbes(eset.bk)
 #remove all genes without annotation
 eset.bk <- eset.bk[!is.na(eset.bk@featureData@data$ENTREZID),]
 
-# voom=exprs(eset.bk)
-# pData=pData(eset.bk)
-# genenames=pData(featureData(eset.bk))
-# 
-# genes <- GeneAnnotate(as.character(genenames$ENSEMBL))
-# 
-# final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
-# rownames(final_res)=make.names(final_res$ID,unique=TRUE)
-# p=strsplit(rownames(final_res),"X")
-# m=sapply(p,"[",2)
-# rownames(final_res)=m
-# genenames=final_res
+#Update annotation to include biotype and geneloc
+genenames=pData(featureData(eset.bk))
+genes <- GeneAnnotate(as.character(genenames$ENSEMBL))
+final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
+rownames(final_res)=make.names(final_res$ID,unique=TRUE)
+p=strsplit(rownames(final_res),"X")
+m=sapply(p,"[",2)
+rownames(final_res)=m
+genenames=final_res
 
+#substitute new annotation data as featuresdata in the eset
+fData <- new("AnnotatedDataFrame",data=genenames)
+eset@featureData=fData
 
 #create design matrix
 (design <-model.matrix(~0+maineffect,data=pData))
@@ -65,32 +65,32 @@ colnames(design)=gsub('maineffect','',colnames(design))
 
 #First compute per mianeffect means. 
 
-meff_mean <- as.data.frame(exprs(eset)) %>% tibble::rownames_to_column(var='geneid')  %>%
-  gather(sample_name,signal,-geneid) %>% inner_join(.,pData) %>% 
-  group_by(geneid,maineffect) %>%
-  dplyr::summarise(avg=mean(signal)) %>% spread(maineffect,avg)
-
-
-week2 <- topTable(fit2,coef=1,n=Inf,p.value=1) %>% 
-  mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
-  dplyr::select(-B,-AveExpr,-t,-GenestoProbe,-logFC) %>%
-  tibble::rownames_to_column(var='geneid') %>% 
-  dplyr::rename(week2_FC=fc,week2_P= P.Value,week_adjP=adj.P.Val)
-
-#We don't need all the anotation from this dataframe, just the stats
-week6 <- topTable(fit2,coef=2,n=Inf,p.value=1) %>% 
-  mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
-  dplyr::select(fc,P.Value, adj.P.Val) %>%
-  tibble::rownames_to_column(var='geneid') %>% 
-  dplyr::rename(week6_FC=fc,week6_P= P.Value,week6_adjP =adj.P.Val ) 
-
-all <- inner_join(week2,week6) %>% inner_join(.,meff_mean)
-
-write.csv(all,'Summary_DiffExpressed.csv',row.names = F)
-
-exprsData <- exprs(eset) %>% as.data.frame(.) %>% tibble::rownames_to_column('ID') %>%
-  inner_join(eset@featureData@data,.,by='ID'  )
-write_csv(exprsData,'ExpressionDataMatrix.csv')
+# meff_mean <- as.data.frame(exprs(eset)) %>% tibble::rownames_to_column(var='geneid')  %>%
+#   gather(sample_name,signal,-geneid) %>% inner_join(.,pData) %>% 
+#   group_by(geneid,maineffect) %>%
+#   dplyr::summarise(avg=mean(signal)) %>% spread(maineffect,avg)
+# 
+# 
+# week2 <- topTable(fit2,coef=1,n=Inf,p.value=1) %>% 
+#   mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
+#   dplyr::select(-B,-AveExpr,-t,-GenestoProbe,-logFC) %>%
+#   tibble::rownames_to_column(var='geneid') %>% 
+#   dplyr::rename(week2_FC=fc,week2_P= P.Value,week_adjP=adj.P.Val)
+# 
+# #We don't need all the anotation from this dataframe, just the stats
+# week6 <- topTable(fit2,coef=2,n=Inf,p.value=1) %>% 
+#   mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
+#   dplyr::select(fc,P.Value, adj.P.Val) %>%
+#   tibble::rownames_to_column(var='geneid') %>% 
+#   dplyr::rename(week6_FC=fc,week6_P= P.Value,week6_adjP =adj.P.Val ) 
+# 
+# all <- inner_join(week2,week6) %>% inner_join(.,meff_mean)
+# 
+# write.csv(all,'Summary_DiffExpressed.csv',row.names = F)
+# 
+# exprsData <- exprs(eset) %>% as.data.frame(.) %>% tibble::rownames_to_column('ID') %>%
+#   inner_join(eset@featureData@data,.,by='ID'  )
+# write_csv(exprsData,'ExpressionDataMatrix.csv')
 
 
 ############### Create the eset #######################
@@ -109,7 +109,7 @@ write_csv(exprsData,'ExpressionDataMatrix.csv')
 # Use the combn functio to make all possible contrasts 
 #f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
 (contrastlist <-read.csv('data/contrastlist.csv'))
-contrastlist$x_vs_y=paste(contrastlist$x,contrastlist$y,sep="-")
+contrastlist$x_vs_y=paste(contrastlist$treatment,contrastlist$control,sep="-")
 f=as.vector(contrastlist$x_vs_y)
 (contrast.matrix <- makeContrasts(contrasts = f,levels=design))
 fit <- lmFit(eset,design)

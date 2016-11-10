@@ -93,7 +93,7 @@ eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotat
 #(f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-")))))
 #read contrastlist.csv to create all possible contrasts
 (contrastlist <-read.csv('data/contrastlist.csv'))
-contrastlist$x_vs_y=paste(contrastlist$x,contrastlist$y,sep="-")
+contrastlist$x_vs_y=paste(contrastlist$treatment,contrastlist$control,sep="-")
 f=as.vector(contrastlist$x_vs_y)
 
 (contrast.matrix <- makeContrasts(contrasts = f,levels=design))
