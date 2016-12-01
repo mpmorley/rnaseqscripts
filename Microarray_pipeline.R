@@ -1,9 +1,7 @@
 library(OligoTools)
-library(mogene20sttranscriptcluster.db)
 require(sva)
 require(dplyr)
 library(limma)
-require(EnsDb.Mmusculus.v75)
 require(devtools)
 install_github('mpmorley/ExpressExtras')
 library(ExpressExtras)
@@ -13,20 +11,36 @@ library(tidyr)
 library(limma)
 library(NMF)
 library(RColorBrewer)
-library(edgeR)
 library(ggplot2)
-require(org.Mm.eg.db)
-require(EnsDb.Mmusculus.v75)
 require(SPIA)
 library(oligo)
 library(readr)
 
-projectname='Falcor_Naphthalene'
+
+################################### Please Set the following Paramtrers ##################################
+#
+projectname='CCAM_array'
+
+#
+##########################################################################################################
 
 #read phenodata
-pData<- read.csv('data/PhenoData.csv') %>% arrange(sample_name)
+(pData<- read.csv('Data/phenoData.csv'))
 rownames(pData)=pData$sample_name
 phenoData <- new("AnnotatedDataFrame", data=pData)
+
+
+
+if(pData$organism[1]=='human'){
+  library(hugene20sttranscriptcluster.db)
+  annotationdb=hugene20sttranscriptcluster.db
+}else if (pData$organism[1]=='mouse'){
+  library(mogene20sttranscriptcluster.db)
+  annotationdb=mogene20sttranscriptcluster.db
+}else{
+  stop("No proper orgasnism found, please edit the pData file")
+}
+
 
 #read cel files
 celFiles <- list.celfiles("./CEL", full.names = TRUE)
@@ -36,7 +50,7 @@ affyGeneFS <- read.celfiles(celFiles,phenoData=phenoData,verbose=TRUE)
 eset = rma(affyGeneFS,target='core')
 
 #annotate microarray data, get gene_biotype, seq_name and create new featuresdata 
-eset.bk <- EnsemblAnnotate(eset,mogene20sttranscriptcluster.db)
+eset.bk <- EnsemblAnnotate(eset,annotationdb)
 eset.bk <-BackgrdFilter(eset.bk)
 eset.bk <-GetMainProbes(eset.bk)
 
@@ -45,7 +59,7 @@ eset.bk <- eset.bk[!is.na(eset.bk@featureData@data$ENTREZID),]
 
 #Update annotation to include biotype and geneloc
 genenames=pData(featureData(eset.bk))
-genes <- GeneAnnotate(as.character(genenames$ENSEMBL))
+genes <- GeneAnnotate(as.character(genenames$ENSEMBL),organism = pData$organism)
 final_res <- left_join(genenames,genes,by=c('ENSEMBL'='ENSEMBL')) %>% select(ID,SYMBOL.x,GENENAME,ENTREZID.x,ENSEMBL,GenestoProbe,biotype,geneloc) %>% dplyr::rename(SYMBOL=SYMBOL.x,ENTREZID=ENTREZID.x)
 rownames(final_res)=make.names(final_res$ID,unique=TRUE)
 p=strsplit(rownames(final_res),"X")
@@ -61,50 +75,6 @@ eset@featureData=fData
 (design <-model.matrix(~0+maineffect,data=pData))
 colnames(design)=gsub('maineffect','',colnames(design))
 
-###### write outhe limma results summary table for now ################
-
-#First compute per mianeffect means. 
-
-# meff_mean <- as.data.frame(exprs(eset)) %>% tibble::rownames_to_column(var='geneid')  %>%
-#   gather(sample_name,signal,-geneid) %>% inner_join(.,pData) %>% 
-#   group_by(geneid,maineffect) %>%
-#   dplyr::summarise(avg=mean(signal)) %>% spread(maineffect,avg)
-# 
-# 
-# week2 <- topTable(fit2,coef=1,n=Inf,p.value=1) %>% 
-#   mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
-#   dplyr::select(-B,-AveExpr,-t,-GenestoProbe,-logFC) %>%
-#   tibble::rownames_to_column(var='geneid') %>% 
-#   dplyr::rename(week2_FC=fc,week2_P= P.Value,week_adjP=adj.P.Val)
-# 
-# #We don't need all the anotation from this dataframe, just the stats
-# week6 <- topTable(fit2,coef=2,n=Inf,p.value=1) %>% 
-#   mutate(fc = ifelse(logFC<0, -1*2^abs(logFC),2^logFC)) %>% 
-#   dplyr::select(fc,P.Value, adj.P.Val) %>%
-#   tibble::rownames_to_column(var='geneid') %>% 
-#   dplyr::rename(week6_FC=fc,week6_P= P.Value,week6_adjP =adj.P.Val ) 
-# 
-# all <- inner_join(week2,week6) %>% inner_join(.,meff_mean)
-# 
-# write.csv(all,'Summary_DiffExpressed.csv',row.names = F)
-# 
-# exprsData <- exprs(eset) %>% as.data.frame(.) %>% tibble::rownames_to_column('ID') %>%
-#   inner_join(eset@featureData@data,.,by='ID'  )
-# write_csv(exprsData,'ExpressionDataMatrix.csv')
-
-
-############### Create the eset #######################
-## Create phenoData
-# rownames(pData) <- (pData$sample_name)
-# phenoData <- new("AnnotatedDataFrame",
-#                  data=pData)
-# fData <- new("AnnotatedDataFrame",
-#              data=genenames)
-# all(rownames(genenames)==rownames(voom))
-# 
-# eset<- ExpressionSet(assayData=as.matrix(voom),phenoData=phenoData,featureData=fData,annotation="mm9")
-
-############# Create contrast matrix and fit models ################
 
 # Use the combn functio to make all possible contrasts 
 #f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
