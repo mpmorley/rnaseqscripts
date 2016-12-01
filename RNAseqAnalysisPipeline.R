@@ -79,17 +79,23 @@ if(all(rownames(pData)!=colnames(v$E))){
 }
   
 phenoData <- new("AnnotatedDataFrame",
-                 data=pData)
+data=pData)
 fData <- new("AnnotatedDataFrame",
-             data=genenames)
+data=genenames)
 all(rownames(genenames)==rownames(v$E))
 
 eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation="mm9")
 
+
 ############# Create contrast matrix and fit models ################
 
 # Use the combn functio to make all possible contrasts 
-f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
+#(f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-")))))
+#read contrastlist.csv to create all possible contrasts
+(contrastlist <-read.csv('data/contrastlist.csv'))
+contrastlist$x_vs_y=paste(contrastlist$treatment,contrastlist$control,sep="-")
+f=as.vector(contrastlist$x_vs_y)
+
 (contrast.matrix <- makeContrasts(contrasts = f,levels=design))
 fit <- lmFit(v,design)
 fit2 <- contrasts.fit(fit, contrast.matrix)
@@ -97,6 +103,7 @@ fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
 
+<<<<<<< HEAD
 load('~/dsdata/projects/data_public/MSigDB/mouse_H_v5.rdata')
 h.indices <- ids2indices(Mm.H,v$genes$ENTREZID)
 load('~/dsdata/projects/data_public/MSigDB/mouse_c2_v5.rdata')
@@ -107,6 +114,30 @@ load('~/dsdata/projects/data_public/MSigDB/mouse_c4_v5.rdata')
 c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
 load('~/fujfs/d1/projects/data_public/MSigDB/mouse_GO.rdata')
 GO.indices <- ids2indices(Mm.GO,v$genes$ENTREZID)
+=======
+if(unique(pData$organism)=="human"){
+  load( '/fujfs/d1/projects/data_public/MSigDB/human_H_v5.rdata')
+  h.indices <- ids2indices(Hs.H,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/human_c2_v5.rdata')
+  c2.indices <- ids2indices(Hs.c2,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/human_c3_v5.rdata')
+  c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/human_c4_v5.rdata')
+  c4.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
+}else
+{
+  load( '/fujfs/d1/projects/data_public/MSigDB/mouse_H_v5.rdata')
+  h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c2_v5.rdata')
+  c2.indices <- ids2indices(Mm.c2,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c3_v5.rdata')
+  c3.indices <- ids2indices(Mm.c3,genenames$ENTREZID)
+  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c4_v5.rdata')
+  c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
+  load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_GO.rdata')
+  GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
+}
+>>>>>>> 763b9c3e88db0a9e2909c3f437a0df8acf94987b
 ##################################################################
 
 #Remove the '-' from the constrat name, it will cause issues down stream
