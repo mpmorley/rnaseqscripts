@@ -116,6 +116,7 @@ if(unique(pData$organism)=="human"){
 
 #Remove the '-' from the constrat name, it will cause issues down stream
 (contrastnames <-gsub('-','_vs_',colnames(contrast.matrix)))
+(contrastnames <-gsub(' ','',colnames(contrast.matrix)))
 #Create list to hold the results for limma,togo and camera for all contrasts
 limma <-  vector(mode="list", length=length(contrastnames))
 names(limma) <- contrastnames
