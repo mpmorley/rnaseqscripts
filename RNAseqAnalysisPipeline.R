@@ -13,41 +13,96 @@ require(org.Mm.eg.db)
 require(EnsDb.Mmusculus.v75)
 require(SPIA)
 
-dir='mm9/STAR'
-projectname='NANCI_Effects_v2'
 
-#Get a list of all of teh Star count files
+################################### Please Set the following Paramtrers ##################################
+#
+
+dir='mm9/STAR'
+projectname='CCAM_array'
+MSigDB_path='~/dsdata/projects/data_public/MSigDB/'
+librarytype='unstranded'
+
+<<<<<<< HEAD
+=======
+
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
+#
+##########################################################################################################
+
+#read phenodata
+<<<<<<< HEAD
+pData<- read.csv('data/phenodata.csv') %>% arrange(sample_name)
+=======
+(pData<- read.csv('Data/phenoData.csv'))
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
+rownames(pData)=pData$sample_name
+phenoData <- new("AnnotatedDataFrame", data=pData)
+
+
+if(unique(pData$organism)=='human'){
+  library(hugene20sttranscriptcluster.db)
+  annotationdb=hugene20sttranscriptcluster.db
+}else if (unique(pData$organism)=='mouse'){
+  library(mogene20sttranscriptcluster.db)
+  annotationdb=mogene20sttranscriptcluster.db
+}else{
+  stop("No proper orgasnism found, please edit the pData file")
+}
+
+
+
+#Get a list of all of the Star count files
 (file_list <- list.files(dir,pattern="ReadsPerGene.out.tab$",full.names=F))
 
 #This function will return a data frame of with gene and reads column. I need to modify this function to choose the proper col of counts, right now it assume
 # coulmn 4 which is Strand paired reads. 
-parse <- function(x, dir){
+
+parse <- function(x, dir,librarytype){
   d<-read.table(paste(dir,'/',x,sep=''),header=F, sep="\t")
-  
-  return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,
-                    signal=d$V4))
-}
+<<<<<<< HEAD
+  switch(librarytype,
+         unstranded=return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V4)),
+         fwdstrand=return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V3)),
+         revstrand=return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V2))
+  )
+=======
+  if (librarytype=='unstranded'){
+    return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V4))
+    } else if (librarytype=='fwdstrand'){
+    return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V3))
+    }else if (librarytype=='revstrand'){
+    return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V2))
+      } 
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
+  }
 
 #the ldply loops over the filelists and appends data in a long format data.frame, this is piped to a filter to keep only 
 #Ensembl ids and then formated into wide format. 
-dataset <- ldply(file_list, parse, dir) %>% 
+dataset <- ldply(file_list, parse, dir,librarytype) %>% 
   filter(grepl('E',gene)) %>% 
-  spread(sample,signal) %>% 
-  select(-WT2,-Homozygous1,-Nkx4,-Double2)
+<<<<<<< HEAD
+  spread(sample,signal)
+=======
+  spread(sample,signal) 
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
 
-#Create a matrix by dropiiing hte genes column
+######### Create a matrix of count data #######################
 cts <- as.matrix(dataset[,2:dim(dataset)[2]])
 rownames(cts)<-dataset$gene
 
+<<<<<<< HEAD
+############# Get a data.frame of gene annotations #######################
+genenames <- GeneAnnotate(as.character(dataset$gene),organism = unique(pData$organism))
+=======
 #Get a data.frame of gene annotations, this may be not be the same size of input IDs. 
-genenames <- GeneAnnotate(as.character(dataset$gene))
+genenames <- GeneAnnotate(as.character(dataset$gene),organism = pData$organism)
+
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
 rownames(genenames)=genenames$ENSEMBL
 
-############### Remove some Samples 
 
+#################### Create a count matrix and filter CPM ###########
 
-(pData <-read.csv('data/phenodata.csv'))
-#given the genenames object might have less genes, limit the orginal counts abject to just that are annoated. 
 dge <- DGEList(counts=cts[rownames(cts) %in% genenames$ENSEMBL,], genes=genenames)
 cpms = cpm(dge)
 #Filter low expressed genes, must have 25% with a cpm>1
@@ -58,6 +113,8 @@ dge <- calcNormFactors(dge)
 plotMDS(dge)
 boxplot(log2(cts))
 
+
+################ VOOM transform the data ############################
 
 (design <-model.matrix(~0+maineffect,data=pData))
 #Clean up the colnames of the design matrix, don't need the colname in. 
@@ -77,14 +134,19 @@ rownames(pData) <- (pData$sample_name)
 if(all(rownames(pData)!=colnames(v$E))){
   stop('Sample names not equal')
 }
-  
+
 phenoData <- new("AnnotatedDataFrame",
-data=pData)
+                 data=pData)
 fData <- new("AnnotatedDataFrame",
-data=genenames)
+             data=genenames)
 all(rownames(genenames)==rownames(v$E))
 
-eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation="mm9")
+<<<<<<< HEAD
+eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation=unique(pData$organism))
+
+=======
+eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation=pData$organism)
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
 
 
 ############# Create contrast matrix and fit models ################
@@ -103,41 +165,32 @@ fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
 
-<<<<<<< HEAD
-load('~/dsdata/projects/data_public/MSigDB/mouse_H_v5.rdata')
-h.indices <- ids2indices(Mm.H,v$genes$ENTREZID)
-load('~/dsdata/projects/data_public/MSigDB/mouse_c2_v5.rdata')
-c2.indices <- ids2indices(Mm.c2,v$genes$ENTREZID)
-load('~/dsdata/projects/data_public/MSigDB/mouse_c3_v5.rdata')
-c3.indices <- ids2indices(Mm.c3,v$genes$ENTREZID)
-load('~/dsdata/projects/data_public/MSigDB/mouse_c4_v5.rdata')
-c4.indices <- ids2indices(Mm.c4,v$genes$ENTREZID)
-load('~/fujfs/d1/projects/data_public/MSigDB/mouse_GO.rdata')
-GO.indices <- ids2indices(Mm.GO,v$genes$ENTREZID)
-=======
 if(unique(pData$organism)=="human"){
-  load( '/fujfs/d1/projects/data_public/MSigDB/human_H_v5.rdata')
+  load(paste(MSigDB_path, 'human_H_v5.rdata',sep=''))
   h.indices <- ids2indices(Hs.H,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/human_c2_v5.rdata')
+  load(paste(MSigDB_path, 'human_c2_v5.rdata', sep=''))
   c2.indices <- ids2indices(Hs.c2,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/human_c3_v5.rdata')
+  load(paste(MSigDB_path, 'human_c3_v5.rdata',sep=''))
   c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/human_c4_v5.rdata')
-  c4.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
-}else
-{
-  load( '/fujfs/d1/projects/data_public/MSigDB/mouse_H_v5.rdata')
+  load(paste(MSigDB_path, 'human_c4_v5.rdata',sep=''))
+  GO.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
+}else if(unique(pData$organism)=="mouse"){
+  load( paste(MSigDB_path, 'mouse_H_v5.rdata',sep=''))
   h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c2_v5.rdata')
+  load(paste(MSigDB_path, 'mouse_c2_v5.rdata',sep=''))
   c2.indices <- ids2indices(Mm.c2,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c3_v5.rdata')
+  load(paste(MSigDB_path, 'mouse_c3_v5.rdata',sep=''))
   c3.indices <- ids2indices(Mm.c3,genenames$ENTREZID)
-  load(' /fujfs/d1/projects/data_public/MSigDB/mouse_c4_v5.rdata')
+  load(paste(MSigDB_path, 'mouse_c4_v5.rdata',sep=''))
   c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
-  load('/Users/bapoorva/Desktop/ANALYSIS/msigdb/mouse_GO.rdata')
+  load(paste(MSigDB_path,'mouse_GO.rdata',sep=''))
   GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
 }
->>>>>>> 763b9c3e88db0a9e2909c3f437a0df8acf94987b
+
+<<<<<<< HEAD
+=======
+
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
 ##################################################################
 
 #Remove the '-' from the constrat name, it will cause issues down stream
@@ -153,12 +206,10 @@ spia<-  vector(mode="list", length=length(contrastnames))
 names(spia) <- contrastnames
 
 
-i=1
-
 for(i in 1:length(contrastnames)){
   print(contrastnames[i])
   limma[[contrastnames[i]]] <- Cleanup(topTable(fit2,coef=i,n=Inf,p.value=1)) 
-  topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]])
+  topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]],organism =unique(pData$organism))
   
   k=limma[[contrastnames[i]]]
 
@@ -170,8 +221,13 @@ for(i in 1:length(contrastnames)){
   names(sig_genes) = limma_sel$ENTREZID 
   sig_genes = sig_genes[complete.cases(names(sig_genes))]
   sig_genes = sig_genes[unique(names(sig_genes))] 
-  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism="mmu")}
+<<<<<<< HEAD
+  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=ifelse(unique(pData$organism)=='mouse',"mmu",'hsa'))
+  }else{
+=======
+  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=ifelse(unique(pData$organism)=='mouse',"mmu",'hsa'))}
   else{
+>>>>>>> de4358cbb7d76b256d0da6a262dcd6ae7ebe4c3a
     spia[[contrastnames[i]]] <- data.frame()
   }
   
@@ -183,7 +239,6 @@ for(i in 1:length(contrastnames)){
   #res.c4 <- camera(v, c4.indices, design,i,inter.gene.cor=0.01)
   camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices),GO=list(camera_result=res.GO,indices=GO.indices))
 }
-
 
 ############ Save list of results ##############
 results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
