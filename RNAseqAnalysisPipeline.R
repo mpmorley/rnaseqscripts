@@ -53,9 +53,9 @@ parse <- function(x, dir){
   d<-read.table(paste(dir,'/',x,sep=''),header=F, sep="\t")
   if (librarytype=='unstranded'){
     return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V4))
-    } if else (librarytype=='fwdstrand'){
+    } else if (librarytype=='fwdstrand'){
     return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V3))
-    }if else (librarytype=='revstrand'){
+    }else if (librarytype=='revstrand'){
     return(data.frame(sample=sub('ReadsPerGene.out.tab','',x),gene=d$V1,signal=d$V2))
       } 
   }
@@ -64,15 +64,14 @@ parse <- function(x, dir){
 #Ensembl ids and then formated into wide format. 
 dataset <- ldply(file_list, parse, dir) %>% 
   filter(grepl('E',gene)) %>% 
-  spread(sample,signal) %>% 
-  select(-WT2,-Homozygous1,-Nkx4,-Double2)
+  spread(sample,signal) 
 
 #Create a matrix by dropiiing hte genes column
 cts <- as.matrix(dataset[,2:dim(dataset)[2]])
 rownames(cts)<-dataset$gene
 
 #Get a data.frame of gene annotations, this may be not be the same size of input IDs. 
-genenames <- GeneAnnotate(as.character(genenames$ENSEMBL),organism = pData$organism)
+genenames <- GeneAnnotate(as.character(dataset$gene),organism = pData$organism)
 
 rownames(genenames)=genenames$ENSEMBL
 
@@ -189,7 +188,7 @@ for(i in 1:length(contrastnames)){
   names(sig_genes) = limma_sel$ENTREZID 
   sig_genes = sig_genes[complete.cases(names(sig_genes))]
   sig_genes = sig_genes[unique(names(sig_genes))] 
-  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=ifelse(unique(pData$organism)=='mouse',"mmu",'hsa'))
+  spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=ifelse(unique(pData$organism)=='mouse',"mmu",'hsa'))}
   else{
     spia[[contrastnames[i]]] <- data.frame()
   }
