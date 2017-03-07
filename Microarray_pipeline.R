@@ -170,7 +170,13 @@ for(i in 1:length(contrastnames)){
   }else{
     spia[[contrastnames[i]]] <- data.frame()
   }
-  
+  res.h <- camera(v, h.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
+  res.c2 <- camera(v, c2.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
+  res.GO <- camera(v, GO.indices, design,contrast.matrix[,i],inter.gene.cor=0.01)
+  #res.c3 <- camera(v, c3.indices, design,i,inter.gene.cor=0.01)
+  #res.c4 <- camera(v, c4.indices, design,i,inter.gene.cor=0.01)
+  camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices),GO=list(camera_result=res.GO,indices=GO.indices))
+}
 
 ############ Save list of results ##############
 results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
