@@ -22,6 +22,7 @@ library(topGO)
 #
 projectname='CCAM_array'
 MSigDB_path='~/dsdata/projects/data_public/MSigDB/'
+constrastmaker='auto' #set to either file or auto
 #
 ##########################################################################################################
 
@@ -78,9 +79,13 @@ colnames(design)=gsub('maineffect','',colnames(design))
 
 # Use the combn functio to make all possible contrasts 
 #f <-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
-(contrastlist <-read.csv('data/contrastlist.csv'))
-contrastlist$x_vs_y=paste(contrastlist$treatment,contrastlist$control,sep="-")
-f=as.vector(contrastlist$x_vs_y)
+if(constrastmaker=='auto'){
+  f<-as.vector(unlist(combn(colnames(design),2,function(x)paste(x,collapse="-"))))
+}else{
+  f<-read.csv('data/contrastlist.csv') %>% 
+    mutate(c=paste(treatment,control,sep="-")) %>%
+    .$c
+}
 (contrast.matrix <- makeContrasts(contrasts = f,levels=design))
 fit <- lmFit(eset,design)
 fit2 <- contrasts.fit(fit, contrast.matrix)
