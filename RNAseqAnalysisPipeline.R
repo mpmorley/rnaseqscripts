@@ -1,5 +1,5 @@
 require(devtools)
-install_github('mpmorley/ExpressExtras')
+#install_github('mpmorley/ExpressExtras')
 library(ExpressExtras)
 library(plyr)
 library(dplyr)
@@ -73,7 +73,10 @@ rownames(cts)<-dataset$gene
 genenames <- GeneAnnotate(as.character(dataset$gene),organism = unique(pData$organism))
 rownames(genenames)=genenames$ENSEMBL
 
-
+######### Add protein type to the fdata #######################
+ptntype=read.csv("~/NGSshare/mm9_data/ptntype.csv")
+genenames=left_join(genenames,ptntype,by=c("ENSEMBL"="ENSEMBL")) %>% dplyr::select(-gene)
+rownames(genenames)=genenames$ENSEMBL
 #################### Create a count matrix and filter CPM ###########
 
 dge <- DGEList(counts=cts[rownames(cts) %in% genenames$ENSEMBL,], genes=genenames)
@@ -114,7 +117,7 @@ fData <- new("AnnotatedDataFrame",
              data=genenames)
 all(rownames(genenames)==rownames(v$E))
 
-eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation=unique(pData$organism))
+eset<- ExpressionSet(assayData=v$E,phenoData=phenoData,featureData=fData,annotation=unique(as.character(pData$organism)))
 
 
 ############# Create contrast matrix and fit models ################
@@ -173,7 +176,7 @@ names(spia) <- contrastnames
 
 for(i in 1:length(contrastnames)){
   print(contrastnames[i])
-  limma[[contrastnames[i]]] <- Cleanup(topTable(fit2,coef=i,n=Inf,p.value=1)) 
+  limma[[contrastnames[i]]] <- Cleanup2(topTable(fit2,coef=i,n=Inf,p.value=1)) 
   topgo[[contrastnames[i]]] <- runTopGO(limma[[contrastnames[i]]],organism =unique(pData$organism))
   
   k=limma[[contrastnames[i]]]
@@ -199,7 +202,6 @@ for(i in 1:length(contrastnames)){
   #res.c4 <- camera(v, c4.indices, design,i,inter.gene.cor=0.01)
   camera[[contrastnames[i]]] <- list(Hallmark=list(camera_result=res.h,indices=h.indices),Curated=list(camera_result=res.c2,indices=c2.indices),GO=list(camera_result=res.GO,indices=GO.indices))
 }
-
 
 ############ Save list of results ##############
 results <- list(eset=eset,limma=limma,camera=camera, topgo=topgo,spia=spia)
