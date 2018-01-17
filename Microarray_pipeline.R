@@ -21,7 +21,6 @@ library(topGO)
 ################################### Please Set the following Paramtrers ##################################
 #
 projectname='CCAM_array'
-MSigDB_path='~/dsdata/projects/data_public/MSigDB/'
 constrastmaker='auto' #set to either file or auto
 #
 ##########################################################################################################
@@ -92,28 +91,29 @@ fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
-######## load and prepare all the MSigDB sets for camera ######
+
 if(unique(pData$organism)=="human"){
-  load(paste(MSigDB_path, 'human_H_v5.rdata',sep=''))
+  data('human_H_v5',package="ExpressExtras")
   h.indices <- ids2indices(Hs.H,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'human_c2_v5.rdata', sep=''))
+  data('human_c2_v5',package="ExpressExtras")
   c2.indices <- ids2indices(Hs.c2,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'human_c3_v5.rdata',sep=''))
+  data('human_c3_v5',package="ExpressExtras")
   c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'human_c4_v5.rdata',sep=''))
+  data('human_c4_v5',package="ExpressExtras")
   GO.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
 }else if(unique(pData$organism)=="mouse"){
-  load( paste(MSigDB_path, 'mouse_H_v5.rdata',sep=''))
+  data('mouse_H_v5',package="ExpressExtras")
   h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'mouse_c2_v5.rdata',sep=''))
+  data('mouse_c2_v5',package="ExpressExtras")
   c2.indices <- ids2indices(Mm.c2,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'mouse_c3_v5.rdata',sep=''))
+  data('mouse_c3_v5',package="ExpressExtras")
   c3.indices <- ids2indices(Mm.c3,genenames$ENTREZID)
-  load(paste(MSigDB_path, 'mouse_c4_v5.rdata',sep=''))
+  data('mouse_c4_v5',package="ExpressExtras")
   c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
-  load(paste(MSigDB_path,'mouse_GO.rdata',sep=''))
+  data('mouse_GO',package="ExpressExtras")
   GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
 }
+
 
 
 
