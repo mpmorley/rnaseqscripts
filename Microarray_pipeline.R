@@ -99,7 +99,7 @@ if(unique(pData$organism)=="human"){
   c2.indices <- ids2indices(Hs.c2,genenames$ENTREZID)
   data('human_c3_v5',package="ExpressExtras")
   c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
-  data('human_c4_v5',package="ExpressExtras")
+  data('human_c5_v5',package="ExpressExtras")
   GO.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
 }else if(unique(pData$organism)=="mouse"){
   data('mouse_H_v5',package="ExpressExtras")
