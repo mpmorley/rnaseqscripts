@@ -91,7 +91,7 @@ fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
-hum=c("human","Human","Hs","Homo sapien")
+hum=c("human","Human","Hs","Homo sapiens")
 mouse=c("mouse","Mouse","Mm","Mus musculus")
 if(unique(pData$organism) %in% hum){
   data('human_H_v5',package="ExpressExtras")
