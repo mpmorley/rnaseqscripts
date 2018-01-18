@@ -91,8 +91,9 @@ fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
 
 ######## load and prepare all the MSigDB sets for camera ######
-
-if(unique(pData$organism)=="human"){
+hum=c("human","Human","Hs","Homo sapien")
+mouse=c("mouse","Mouse","Mm","Mus musculus")
+if(unique(pData$organism) %in% hum){
   data('human_H_v5',package="ExpressExtras")
   h.indices <- ids2indices(Hs.H,genenames$ENTREZID)
   data('human_c2_v5',package="ExpressExtras")
@@ -101,7 +102,7 @@ if(unique(pData$organism)=="human"){
   c3.indices <- ids2indices(Hs.c3,genenames$ENTREZID)
   data('human_c5_v5',package="ExpressExtras")
   GO.indices <- ids2indices(Hs.c4,genenames$ENTREZID)
-}else if(unique(pData$organism)=="mouse"){
+}else if(unique(pData$organism) %in% mouse){
   data('mouse_H_v5',package="ExpressExtras")
   h.indices <- ids2indices(Mm.H,genenames$ENTREZID)
   data('mouse_c2_v5',package="ExpressExtras")
@@ -112,8 +113,9 @@ if(unique(pData$organism)=="human"){
   c4.indices <- ids2indices(Mm.c4,genenames$ENTREZID)
   data('mouse_GO',package="ExpressExtras")
   GO.indices <- ids2indices(Mm.GO,genenames$ENTREZID)
+}else {
+  print("Incorrect organism name")
 }
-
 
 
 
