@@ -95,7 +95,7 @@ boxplot(log2(cts))
 (design <-model.matrix(~0+maineffect,data=pData))
 #Clean up the colnames of the design matrix, don't need the colname in. 
 colnames(design)<-gsub('maineffect','',colnames(design))
-v <- voom(dge,design,plot=TRUE,normalize="quantile")
+v <- voom(dge,design,plot=TRUE)
 plotMDS(v)
 v$E <- v$E + abs(min(v$E))+1
 
