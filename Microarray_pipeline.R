@@ -26,15 +26,16 @@ constrastmaker='auto' #set to either file or auto
 ##########################################################################################################
 
 #read phenodata
-(pData<- read.csv('Data/phenoData.csv'))
+(pData<- read.csv('data/phenodata.csv'))
 rownames(pData)=pData$sample_name
 phenoData <- new("AnnotatedDataFrame", data=pData)
 
-
-if(unique(pData$organism)=='human'){
+hum=c("human","Human","Hs","Homo sapiens","Homo_sapiens")
+mouse=c("mouse","Mouse","Mm","Mus musculus","Mus_musculus")
+if(unique(pData$organism) %in% hum){
   library(hugene20sttranscriptcluster.db)
   annotationdb=hugene20sttranscriptcluster.db
-}else if (unique(pData$organism)=='mouse'){
+}else if (unique(pData$organism) %in% mouse){
   library(mogene20sttranscriptcluster.db)
   annotationdb=mogene20sttranscriptcluster.db
 }else{
@@ -67,6 +68,7 @@ m=sapply(p,"[",2)
 rownames(final_res)=m
 genenames=final_res
 
+eset=eset.bk
 #substitute new annotation data as featuresdata in the eset
 fData <- new("AnnotatedDataFrame",data=genenames)
 eset@featureData=fData
