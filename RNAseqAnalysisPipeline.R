@@ -16,8 +16,8 @@ require(SPIA)
 
 ################################### Please Set the following Paramtrers ##################################
 #
-dir='RNASeq_STAR3/STAR'
-projectname='NANCI_6month'
+dir='RNAseq_1n2nCardio/STAR'
+projectname='RNAseq_1n2nCardio'
 #MSigDB_path='~/dsdata/projects/data_public/MSigDB/'
 librarytype='unstranded'
 constrastmaker='auto' #set to either file or auto
@@ -97,6 +97,7 @@ boxplot(log2(cts))
 colnames(design)<-gsub('maineffect','',colnames(design))
 v <- voom(dge,design,plot=TRUE)
 plotMDS(v)
+pData$minexpr=abs(min(v$E))+1
 v$E <- v$E + abs(min(v$E))+1
 
 dge2 <- estimateDisp(dge, design, robust=TRUE)
