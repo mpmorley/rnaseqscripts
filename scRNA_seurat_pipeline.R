@@ -4,6 +4,7 @@ library(dplyr)
 library(Matrix)
 library(openxlsx)
 
+
 ################################### Set input parameters ##################################
 #
 dir='DF_E15.5_Nkx2.1'
@@ -121,6 +122,33 @@ print(x = head(x = cluster1_2.markers, n = 5))
 cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
 
 cluster1_all.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
+=======
+pbmc <- JackStraw(object = pbmc, num.replicate = 100, do.print = FALSE)
+
+JackStrawPlot(object = pbmc, PCs = 1:14)
+PCElbowPlot(object = pbmc)
+
+#Clustering
+pbmc <- FindClusters(object = pbmc, reduction.type = "pca", dims.use = 1:14, resolution = 0.6, print.output = 0, save.SNN = TRUE)
+
+PrintFindClustersParams(object = pbmc)
+
+#Run tsne
+pbmc <- RunTSNE(object = pbmc, dims.use = 1:14, do.fast = TRUE)
+TSNEPlot(object = pbmc,pt.size=2,group.by = "ident")
+#TSNEPlot(object = pbmc,pt.size=2,group.by = "celltype",colors.use = c("coral2","lightgray","turquoise3","mediumorchid"))
+
+#Create Feature Plot of genes of choice
+FeaturePlot(object = pbmc, features.plot = c("Hopx","Sftpc","Sox2","Sox9"), cols.use = c("grey", "blue"), 
+            reduction.use = "tsne")
+
+#find cluster markers
+cluster1_2.markers <- FindMarkers(object = pbmc, ident.1 = 1,ident.2 =2, min.pct = -Inf)
+print(x = head(x = cluster1_2.markers, n = 5))
+cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
+
+cluster1_all.markers <- FindMarkers(object = pbmc, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
+>>>>>>> ec9868659d3b5420ed55c4fbc0e03705cbb4361c
 print(x = head(x = cluster1_all.markers, n = 5))
 
 #write output
