@@ -67,7 +67,7 @@ length(x = scrna@var.genes)
 
 if(regresscellcycle=="yes"){
   # Read in a list of cell cycle markers, from Tirosh et al, 2015
-    cc.genes <- readLines(con = "data/regev_lab_cell_cycle_genes.txt")
+    cc.genes <- readLines(con = "/Users/bapoorva/Downloads/cell_cycle_vignette_files/regev_lab_cell_cycle_genes.txt")
     cc.genes= tolower(cc.genes)
     cc.genes=paste0(toupper(substr(cc.genes, 1, 1)), substr(cc.genes, 2, nchar(cc.genes)))
   
@@ -90,11 +90,19 @@ if(regresscellcycle=="yes"){
 
 #Perform linear dimensional reduction (Note: performed on the variable genes)
 scrna <- RunPCA(object = scrna, pc.genes = scrna@var.genes, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+
+pdf(file=paste(dir,"/plots/",project,"_vizplot.pdf",sep=""),height = 7,width = 11)
 VizPCA(object = scrna, pcs.use = 1:2)
+dev.off()
+
+pdf(file=paste(dir,"/plots/",project,"_pcaplot.pdf",sep=""),height = 7,width = 11)
 PCAPlot(object = scrna, dim.1 = 1, dim.2 = 2)
+dev.off()
+
+pdf(file=paste(dir,"/plots/",project,"_pcheatmap.pdf",sep=""),height = 7,width = 11)
 PCHeatmap(object = scrna, pc.use = 1:15, cells.use = 500, do.balanced = TRUE, 
           label.columns = FALSE, use.full = FALSE)
-
+dev.off()
 
 #Determine statistically significant principal components by randomly permuting a subset of the data (1% by default) and rerunning PCA
 scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE)
