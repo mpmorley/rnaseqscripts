@@ -115,31 +115,40 @@ scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE)
   dev.off()
 
 #Clustering
-scrna <- FindClusters(object = scrna, reduction.type = "pca", dims.use = 1:14, resolution = 0.6, print.output = 0, save.SNN = TRUE)
+scrna <- FindClusters(object = scrna, reduction.type = "pca", dims.use = 1:15, resolution = 0.6, print.output = 0, save.SNN = TRUE)
 
 PrintFindClustersParams(object = scrna)
 
 #Run tsne
-scrna <- RunTSNE(object = scrna, dims.use = 1:14, do.fast = TRUE)
+scrna <- RunTSNE(object = scrna, dims.use = 1:15, do.fast = TRUE)
+
+# scrna_eset <- newCellDataSet(scrna@scale.data,
+#                        phenoData =scrna@meta.data, featureData = fd)
+
 
   pdf(file=paste(dir,"/plots/",project,"_TSNEplot.pdf",sep=""),height = 9,width = 9)
   TSNEPlot(object = scrna,pt.size=2,group.by = "ident")
   dev.off()
+  
+save(scrna,file=paste(dir,"/",project,".RData",sep=""))
 #TSNEPlot(object = scrna,pt.size=2,group.by = "celltype",colors.use = c("coral2","lightgray","turquoise3","mediumorchid"))
 
 #Create Feature Plot of genes of choice
-FeaturePlot(object = scrna, features.plot = c("Hopx","Sftpc","Sox2","Sox9"), cols.use = c("grey", "blue"), 
-            reduction.use = "tsne")
+# FeaturePlot(object = scrna, features.plot = c("Hopx","Sftpc","Sox2","Sox9"), cols.use = c("grey", "blue"), 
+#             reduction.use = "tsne")
 
 #find cluster markers
-cluster1_2.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 =2, min.pct = -Inf)
-print(x = head(x = cluster1_2.markers, n = 5))
-cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
+# cluster1_2.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 =2, min.pct = -Inf)
+# print(x = head(x = cluster1_2.markers, n = 5))
+# cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
+# 
+# cluster1_all.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
+# print(x = head(x = cluster1_all.markers, n = 5))
+# 
+# #write output
+# result=list(AT1_vs_AT2=cluster1_2.markers,AT1_vs_all=cluster1_all.markers)
+# 
+# write.xlsx(result,file="results.xlsx",row.names=T)
+# 
 
-cluster1_all.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
-print(x = head(x = cluster1_all.markers, n = 5))
 
-#write output
-result=list(AT1_vs_AT2=cluster1_2.markers,AT1_vs_all=cluster1_all.markers)
-
-write.xlsx(result,file="results.xlsx",row.names=T)
