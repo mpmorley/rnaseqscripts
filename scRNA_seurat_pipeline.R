@@ -49,12 +49,12 @@ scrna <- FilterCells(object = scrna, subset.names = c("nGene", "percent.mito"),
 
 #################################
 #Define cell types in meta data based on a certain criteria (if present. Else proceed without this section)
-# my.data=FetchData(scrna,c("ident","nGene","Hopx","Sftpc"))
-# my.data$celltype=ifelse(my.data$Hopx>=1 & my.data$Sftpc <10, "AT1", ifelse(my.data$Hopx<1 & my.data$Sftpc >=10,"AT2",ifelse(my.data$Hopx>=1 & my.data$Sftpc >=10,"AT1/AT2","NULL")))
-# my.data=my.data %>% select(celltype)
-# my.data2=as.character(my.data$celltype)
-# names(my.data2)=rownames(my.data)
-# scrna <- AddMetaData(object = scrna, metadata = my.data2, col.name = "celltype")
+my.data=FetchData(scrna,c("ident","nGene","Hopx","Sftpc"))
+my.data$celltype=ifelse(my.data$Hopx>=1 & my.data$Sftpc <10, "AT1", ifelse(my.data$Hopx<1 & my.data$Sftpc >=10,"AT2",ifelse(my.data$Hopx>=1 & my.data$Sftpc >=10,"AT1/AT2","NULL")))
+my.data=my.data %>% select(celltype)
+my.data2=as.character(my.data$celltype)
+names(my.data2)=rownames(my.data)
+scrna <- AddMetaData(object = scrna, metadata = my.data2, col.name = "var_celltype")
 ###################################
 
 #normalize data
