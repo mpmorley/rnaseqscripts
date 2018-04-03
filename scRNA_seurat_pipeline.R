@@ -7,7 +7,7 @@ library(openxlsx)
 
 ################################### Set input parameters ##################################
 #
-dir='DF_E13.5_Nkx2.1'
+dir='DF_E15.5_Nkx2.1'
 project="DF_E15.5_Nkx2.1"
 type="single" #choose either single or aggregate
 regresscellcycle="no" #choose either yes or no
