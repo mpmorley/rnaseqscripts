@@ -7,7 +7,7 @@ library(openxlsx)
 
 ################################### Set input parameters ##################################
 #
-dir='DF_E15.5_Nkx2.1'
+dir='DF_E13.5_Nkx2.1'
 project="DF_E15.5_Nkx2.1"
 type="single" #choose either single or aggregate
 regresscellcycle="no" #choose either yes or no
@@ -91,24 +91,28 @@ if(regresscellcycle=="yes"){
 #Perform linear dimensional reduction (Note: performed on the variable genes)
 scrna <- RunPCA(object = scrna, pc.genes = scrna@var.genes, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 
-pdf(file=paste(dir,"/plots/",project,"_vizplot.pdf",sep=""),height = 7,width = 11)
-VizPCA(object = scrna, pcs.use = 1:2)
-dev.off()
+  pdf(file=paste(dir,"/plots/",project,"_vizplot.pdf",sep=""),height = 7,width = 11)
+  VizPCA(object = scrna, pcs.use = 1:2)
+  dev.off()
 
-pdf(file=paste(dir,"/plots/",project,"_pcaplot.pdf",sep=""),height = 7,width = 11)
-PCAPlot(object = scrna, dim.1 = 1, dim.2 = 2)
-dev.off()
+  pdf(file=paste(dir,"/plots/",project,"_pcaplot.pdf",sep=""),height = 7,width = 11)
+  PCAPlot(object = scrna, dim.1 = 1, dim.2 = 2)
+  dev.off()
 
-pdf(file=paste(dir,"/plots/",project,"_pcheatmap.pdf",sep=""),height = 7,width = 11)
-PCHeatmap(object = scrna, pc.use = 1:15, cells.use = 500, do.balanced = TRUE, 
-          label.columns = FALSE, use.full = FALSE)
-dev.off()
+  pdf(file=paste(dir,"/plots/",project,"_pcheatmap.pdf",sep=""),height = 7,width = 11)
+  PCHeatmap(object = scrna, pc.use = 1:15, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
+  dev.off()
 
 #Determine statistically significant principal components by randomly permuting a subset of the data (1% by default) and rerunning PCA
 scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE)
 
-JackStrawPlot(object = scrna, PCs = 1:14)
-PCElbowPlot(object = scrna)
+  pdf(file=paste(dir,"/plots/",project,"_jackstrawplot.pdf",sep=""),height = 7,width = 11)
+  JackStrawPlot(object = scrna, PCs = 1:14)
+  dev.off()
+
+  pdf(file=paste(dir,"/plots/",project,"_pcelbow.pdf",sep=""),height = 7,width = 11)
+  PCElbowPlot(object = scrna)
+  dev.off()
 
 #Clustering
 scrna <- FindClusters(object = scrna, reduction.type = "pca", dims.use = 1:14, resolution = 0.6, print.output = 0, save.SNN = TRUE)
@@ -117,7 +121,10 @@ PrintFindClustersParams(object = scrna)
 
 #Run tsne
 scrna <- RunTSNE(object = scrna, dims.use = 1:14, do.fast = TRUE)
-TSNEPlot(object = scrna,pt.size=2,group.by = "ident")
+
+  pdf(file=paste(dir,"/plots/",project,"_TSNEplot.pdf",sep=""),height = 9,width = 9)
+  TSNEPlot(object = scrna,pt.size=2,group.by = "ident")
+  dev.off()
 #TSNEPlot(object = scrna,pt.size=2,group.by = "celltype",colors.use = c("coral2","lightgray","turquoise3","mediumorchid"))
 
 #Create Feature Plot of genes of choice
@@ -130,33 +137,6 @@ print(x = head(x = cluster1_2.markers, n = 5))
 cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
 
 cluster1_all.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
-=======
-pbmc <- JackStraw(object = pbmc, num.replicate = 100, do.print = FALSE)
-
-JackStrawPlot(object = pbmc, PCs = 1:14)
-PCElbowPlot(object = pbmc)
-
-#Clustering
-pbmc <- FindClusters(object = pbmc, reduction.type = "pca", dims.use = 1:14, resolution = 0.6, print.output = 0, save.SNN = TRUE)
-
-PrintFindClustersParams(object = pbmc)
-
-#Run tsne
-pbmc <- RunTSNE(object = pbmc, dims.use = 1:14, do.fast = TRUE)
-TSNEPlot(object = pbmc,pt.size=2,group.by = "ident")
-#TSNEPlot(object = pbmc,pt.size=2,group.by = "celltype",colors.use = c("coral2","lightgray","turquoise3","mediumorchid"))
-
-#Create Feature Plot of genes of choice
-FeaturePlot(object = pbmc, features.plot = c("Hopx","Sftpc","Sox2","Sox9"), cols.use = c("grey", "blue"), 
-            reduction.use = "tsne")
-
-#find cluster markers
-cluster1_2.markers <- FindMarkers(object = pbmc, ident.1 = 1,ident.2 =2, min.pct = -Inf)
-print(x = head(x = cluster1_2.markers, n = 5))
-cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
-
-cluster1_all.markers <- FindMarkers(object = pbmc, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
->>>>>>> ec9868659d3b5420ed55c4fbc0e03705cbb4361c
 print(x = head(x = cluster1_all.markers, n = 5))
 
 #write output
