@@ -11,6 +11,7 @@ dir='DF_E15.5_Nkx2.1'
 project="DF_E15.5_Nkx2.1"
 type="single" #choose either single or aggregate
 regresscellcycle="no" #choose either yes or no
+addcelltype="no"
 #
 ##########################################################################################################
 
@@ -129,26 +130,22 @@ scrna <- RunTSNE(object = scrna, dims.use = 1:15, do.fast = TRUE)
   pdf(file=paste(dir,"/plots/",project,"_TSNEplot.pdf",sep=""),height = 9,width = 9)
   TSNEPlot(object = scrna,pt.size=2,group.by = "ident")
   dev.off()
+
+#run and save find  markers 
+scrna@meta.data=scrna@meta.data %>% rename("var_cluster"="res.0.6")
+
+#Add celltypes if you have the information 
+if(addcelltype=="yes"){
+  scrna@meta.data$var_celltype=ifelse(scrna@meta.data$var_cluster==0 | scrna@meta.data$var_cluster==2 | scrna@meta.data$var_cluster==5 ,"Late_Preadipocyte",ifelse(scrna@meta.data$var_cluster==3 | scrna@meta.data$var_cluster==4,"Early_Preadipocyte",ifelse(scrna@meta.data$var_cluster==1,"Novel_cluster1",ifelse(scrna@meta.data$var_cluster==9,"Endothelial",ifelse(scrna@meta.data$var_cluster==6 ,"Novel_cluster_7",ifelse(scrna@meta.data$var_cluster==7,"Smooth_muscle",ifelse(scrna@meta.data$var_cluster==10,"Novel_cluster_4",ifelse(scrna@meta.data$var_cluster==11 ,"Mature_Adipocytes",ifelse(scrna@meta.data$var_cluster==12,"Novel_cluster_3",ifelse(scrna@meta.data$var_cluster==8,"Neural_crest_progenitors",ifelse(scrna@meta.data$var_cluster==13,"Novel_cluster_5",ifelse(scrna@meta.data$var_cluster==14,"Novel_cluster_6","NA"))))))))))))
+}
+
+  scrna <- SetAllIdent(object = scrna, id = "var_celltype")
   
+  scrna@misc=NA
+  scrna@misc <-  vector(mode="list", length=length(levels(scrna@ident)))
+  names(scrna@misc)=levels(scrna@ident)
+  for(c in levels(scrna@ident)){
+    scrna@misc[[c]] <- FindMarkers(scrna,ident.1 = c) %>% tibble::rownames_to_column('gene_name')
+    rownames(scrna@misc[[c]])=scrna@misc[[c]]$gene_name
+  } 
 save(scrna,file=paste(dir,"/",project,".RData",sep=""))
-#TSNEPlot(object = scrna,pt.size=2,group.by = "celltype",colors.use = c("coral2","lightgray","turquoise3","mediumorchid"))
-
-#Create Feature Plot of genes of choice
-# FeaturePlot(object = scrna, features.plot = c("Hopx","Sftpc","Sox2","Sox9"), cols.use = c("grey", "blue"), 
-#             reduction.use = "tsne")
-
-#find cluster markers
-# cluster1_2.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 =2, min.pct = -Inf)
-# print(x = head(x = cluster1_2.markers, n = 5))
-# cluster1_2.markers=cluster1_2.markers[order(-cluster1_2.markers$avg_logFC),]
-# 
-# cluster1_all.markers <- FindMarkers(object = scrna, ident.1 = 1,ident.2 = c(2,3), min.pct = 0.25)
-# print(x = head(x = cluster1_all.markers, n = 5))
-# 
-# #write output
-# result=list(AT1_vs_AT2=cluster1_2.markers,AT1_vs_all=cluster1_all.markers)
-# 
-# write.xlsx(result,file="results.xlsx",row.names=T)
-# 
-
-
