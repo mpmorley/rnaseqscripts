@@ -4,17 +4,25 @@ library(dplyr)
 library(Matrix)
 library(openxlsx)
 
+#Specify input
+dir='DF_E15.5_Nkx2.1' #specify directory
+project='DF_E15.5_Nkx2.1' # specify project name. 
+maxdim = 40 # Maximum number of dimensions (principle components) to compute
+mindim = 4 # Minimum number of dimensions (principle components) to compute
+maxres = 1.6 # Maximum number of resolutions to use to find clusters
+minres = 0.4 # Minimum number of resolutions to use to find clusters
+markergenes=NA #If you have a list of markergenes, enter here as a character vector or leave it as NA. Keep in mind the organism and use the right genenames
+#markergenes <- c("NKX2-5","SOX2","SOX17")
 
-################################### Set input parameters ##################################
-#
-dir='DF_E15.5_Nkx2.1'
-project="DF_E15.5_Nkx2.1"
-type="single" #choose either single or aggregate
-regresscellcycle="no" #choose either yes or no
-addcelltype="no"
-#
-##########################################################################################################
+#Note: Occasionally the program might throw an error if one or multiple marker genes entered is not present in the dataset (Probably filtered out due to low expression).
+# In that case, check genename for typos (also case as the program is case-sensitive) or else remove it from the list. 
 
+
+##################### Create funtion to process the data ##################################
+processExper <- function(dir,name,ccscale=F,type='single',org='human'){
+#create directory to save the plots  
+dir.create(paste0(dir,"/plots",sep=""),recursive = T)
+  
 # Load the dataset
 if(type=="single"){
 inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices/mm10/",sep=""))
@@ -22,15 +30,18 @@ inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices/mm10/
   inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices_mex/mm10/",sep=""))
 }
 
-
 # Initialize the Seurat object with the raw (non-normalized data).  
-scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 3, min.genes = 200,project = project)
+scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 3, min.genes = 200,project = name)
 
 # calculate the percent.mito values.
+if(org='mouse'){
 mito.genes <- grep(pattern = "^mt-", x = rownames(x = scrna@data), value = TRUE)
+}else{
+  mito.genes <- grep(pattern = "^MT-", x = rownames(x = scrna@data), value = TRUE)
+}
 percent.mito <- Matrix::colSums(scrna@raw.data[mito.genes, ])/Matrix::colSums(scrna@raw.data)
 
-# AddMetaData adds columns to object@meta.data, and is a great place to stash QC stats
+# AddMetaData adds columns to object@meta.data. metadata is a great place to stash QC stats
 scrna <- AddMetaData(object = scrna, metadata = percent.mito, col.name = "percent.mito")
 
 pdf(file=paste(dir,"/plots/",project,"_violinplot.pdf",sep=""),height = 7,width = 11)
@@ -48,16 +59,6 @@ dev.off()
 scrna <- FilterCells(object = scrna, subset.names = c("nGene", "percent.mito"), 
                     low.thresholds = c(500, -Inf), high.thresholds = c(Inf, 0.05))
 
-#################################
-#Define cell types in meta data based on a certain criteria (if present. Else proceed without this section)
-my.data=FetchData(scrna,c("ident","nGene","Hopx","Sftpc"))
-my.data$celltype=ifelse(my.data$Hopx>=1 & my.data$Sftpc <10, "AT1", ifelse(my.data$Hopx<1 & my.data$Sftpc >=10,"AT2",ifelse(my.data$Hopx>=1 & my.data$Sftpc >=10,"AT1/AT2","NULL")))
-my.data=my.data %>% select(celltype)
-my.data2=as.character(my.data$celltype)
-names(my.data2)=rownames(my.data)
-scrna <- AddMetaData(object = scrna, metadata = my.data2, col.name = "var_celltype")
-###################################
-
 #normalize data
 scrna <- NormalizeData(object = scrna, normalization.method = "LogNormalize",scale.factor = 10000)
 
@@ -66,31 +67,37 @@ scrna <- NormalizeData(object = scrna, normalization.method = "LogNormalize",sca
 scrna <- FindVariableGenes(object = scrna, mean.function = ExpMean, dispersion.function = LogVMR,x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5)
 length(x = scrna@var.genes)
 
-if(regresscellcycle=="yes"){
-  # Read in a list of cell cycle markers, from Tirosh et al, 2015
-    cc.genes <- readLines(con = "/Users/bapoorva/Downloads/cell_cycle_vignette_files/regev_lab_cell_cycle_genes.txt")
-    cc.genes= tolower(cc.genes)
-    cc.genes=paste0(toupper(substr(cc.genes, 1, 1)), substr(cc.genes, 2, nchar(cc.genes)))
-  
-  # Segregate this list into markers of G2/M phase and markers of Sphase
-    s.genes <- cc.genes[1:43]
-    g2m.genes <- cc.genes[44:97]
-  
+if(ccscale==T){
+  if(org=='human'){
   #Assign scores in the CellCycleScoring function.Stores S and G2/M scores in object@meta.data, along with the predicted classification of each cell in either G2M, S or G1 phase
-    scrna <- CellCycleScoring(object = scrna, s.genes = s.genes, g2m.genes = g2m.genes, set.ident = TRUE)
-  
-  # view cell cycle scores and phase assignments
-    head(x = scrna@meta.data)
-  
+  scrna <- CellCycleScoring(object = scrna, s.genes = cc.genes$s.genes, g2m.genes = cc.genes$g2m.genes)
+  }else{
+    m2h <- read_csv('~/NGSshare/homologs/mouse_human.csv')
+    cc.genes$s.genes <- m2h %>% filter(human_name %in% cc.genes$s.genes) %>% pull(mouse_name)
+    cc.genes$g2m.genes <- m2h %>% filter(human_name %in% cc.genes$g2m.genes) %>% pull(mouse_name)
+    scrna <- CellCycleScoring(object = scrna, s.genes = cc.genes$s.genes, g2m.genes = cc.genes$g2m.genes)
+  }
   #Scaling the data and removing unwanted sources of variation
     scrna <- ScaleData(object = scrna, vars.to.regress = c("nUMI", "percent.mito","S.Score", "G2M.Score"))
 }else{
   scrna <- ScaleData(object = scrna, vars.to.regress = c("nUMI", "percent.mito"))
 }
+}
+
+#Setup seurat objects for each of the single cell experiments
+################################################################################################################################################
+##  dir - directory where you have your input files                                                                                           ##
+##  name -project name                                                                                                                        ## 
+##  type - choose either single or aggregate. Default is single                                                                               ##
+##  ccscale - choose either TRUE (T) ot FALSE(F) based on whether or not you want to regress out cell cycle. Default is FALSE                 ## 
+##  org - specify if mouse/human. default is human                                                                                            ##
+##  mergedata - choose either TRUE (T) ot FALSE(F) based on whether or not you want to merge datasets. If true, specify                       ##
+################################################################################################################################################
+scrna <- processExper(dir='DF_E15.5_Nkx2.1',name='DF_E15.5_Nkx2.1',ccscale=T,type="single",org="mouse")
 
 
 #Perform linear dimensional reduction (Note: performed on the variable genes)
-scrna <- RunPCA(object = scrna, pc.genes = scrna@var.genes, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
+scrna <- RunPCA(object = scrna, pc.genes = scrna@var.genes, do.print = TRUE, pcs.print = 1:5, genes.print = 5,pcs.compute=maxdim)
 
   pdf(file=paste(dir,"/plots/",project,"_vizplot.pdf",sep=""),height = 7,width = 11)
   VizPCA(object = scrna, pcs.use = 1:2)
@@ -105,7 +112,7 @@ scrna <- RunPCA(object = scrna, pc.genes = scrna@var.genes, do.print = TRUE, pcs
   dev.off()
 
 #Determine statistically significant principal components by randomly permuting a subset of the data (1% by default) and rerunning PCA
-scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE)
+scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE,num.pc=maxdim)
 
   pdf(file=paste(dir,"/plots/",project,"_jackstrawplot.pdf",sep=""),height = 7,width = 11)
   JackStrawPlot(object = scrna, PCs = 1:14)
@@ -115,32 +122,77 @@ scrna <- JackStraw(object = scrna, num.replicate = 100, do.print = FALSE)
   PCElbowPlot(object = scrna)
   dev.off()
 
-#Clustering
-scrna <- FindClusters(object = scrna, reduction.type = "pca", dims.use = 1:15, resolution = 0.6, print.output = 0, save.SNN = TRUE)
+#Run tSNE,uMAP and Clustering in a loop and save the results in seperate folders within the project directory
+  
+  for(dim in seq(mindim,maxdim,2)){
+    #Create dir for each dimension
+    dir.create(paste0(dir,"/",dim,'/'))
+    
+    #Run tsne and umap
+    scrna <- RunTSNE(object = scrna, dims.use = 1:dim, do.fast = TRUE)
+    scrna <- RunUMAP(object = scrna, dims.use = 1:dim)
+    
+    
+    for(res in seq(minres,maxres,0.2)){
+      scrna <- FindClusters(scrna, reduction.type = "pca",dims.use = 1:dim, save.SNN = T, resolution = res)
+      
+      # Visualization make 2 plots.. TSNE and UMAP 
+      plot_grid(
+        TSNEPlot(scrna, do.label = T,do.return=T),
+        DimPlot(scrna, reduction.use = "umap", do.label = T,do.return=T)
+      )
+      
+      ggsave(paste0(dir,"/",dim,'/tSNE_umap_dim',dim,'_res',res,'.png'), width=15,height=9)
+    }
+    
+    if(is.na(markergenes)==FALSE){
+      fp <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T)
+      cowplot::ggsave(paste0(dir,"/",dim,'/TSNE_dim',dim,'_markergenes.png'),plot_grid(plotlist = fp),width=16,height=16)
+      
+      fp_umap <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T,reduction.use = "umap")
+      cowplot::ggsave(paste0(dir,"/",dim,'/UMAP_dim',dim,'_markergenes.png'),plot_grid(plotlist = fp),width=16,height=16)
+    }
+    save(scrna,file=paste0(dir,"/",dim,"/",project,"_dim",dim,'.RData'))
+  }
 
-PrintFindClustersParams(object = scrna)
+              ################################################## STOP HERE ##############################################
+  ################################################################################################################################################
+  ################################################################################################################################################
+  ##  Look at the tsne and umap plots. The resolutions vary between minimum and maximum resolutions specified incremented by 0.2.               ##
+  ##  There will be one plot for each resolution                                                                                                ## 
+  ##  The dimensions vary between minimum and maximum dimension specified incremented by 2. The above code will generate a dir for each         ##
+  ##  dimension and within each directory will be n number of plots of varying resolution and a seurat object. Go through the plots and select  ## 
+  ##  the dimension and resolution that makes the most sense and then proceed.                                                                  ##
+  ##  If you have entered markergenes, the Featureplots will show the gene expresssion using both tSNE and umap. If you know the cell type,     ##
+  ##  you can add the cell type as a variable as well and run FindMarkers fuction.Defaults to cluster.                                          ##
+  ################################################################################################################################################
+  ################################################################################################################################################
 
-#Run tsne
-scrna <- RunTSNE(object = scrna, dims.use = 1:15, do.fast = TRUE)
+  #specify dim and res
+  dim=22
+  res=1.2
+  addcelltype="yes" #choose between yes or no
 
-# scrna_eset <- newCellDataSet(scrna@scale.data,
-#                        phenoData =scrna@meta.data, featureData = fd)
-
-
-  pdf(file=paste(dir,"/plots/",project,"_TSNEplot.pdf",sep=""),height = 9,width = 9)
-  TSNEPlot(object = scrna,pt.size=2,group.by = "ident")
-  dev.off()
-
-#run and save find  markers 
-scrna@meta.data=scrna@meta.data %>% rename("var_cluster"="res.0.6")
+  #Load the right data
+  load(paste0(dir,"/",dim,"/",project,"_dim",dim,'.RData'))
+  
+  #Rename the right resolution colum in the meta data to var_cluster
+  scrna@meta.data=scrna@meta.data %>% rename("var_cluster"=paste0("res.",res))
 
 #Add celltypes if you have the information 
+  #Create and excel sheet names celltypes.csv with the first column having the cluster id and second column having the celltype
+  #Note: Every cluster should have a celltype associated with it. If there isnt any, use "novel_celltype_<num>"
 if(addcelltype=="yes"){
-  scrna@meta.data$var_celltype=ifelse(scrna@meta.data$var_cluster==0 | scrna@meta.data$var_cluster==2 | scrna@meta.data$var_cluster==5 ,"Late_Preadipocyte",ifelse(scrna@meta.data$var_cluster==3 | scrna@meta.data$var_cluster==4,"Early_Preadipocyte",ifelse(scrna@meta.data$var_cluster==1,"Novel_cluster1",ifelse(scrna@meta.data$var_cluster==9,"Endothelial",ifelse(scrna@meta.data$var_cluster==6 ,"Novel_cluster_7",ifelse(scrna@meta.data$var_cluster==7,"Smooth_muscle",ifelse(scrna@meta.data$var_cluster==10,"Novel_cluster_4",ifelse(scrna@meta.data$var_cluster==11 ,"Mature_Adipocytes",ifelse(scrna@meta.data$var_cluster==12,"Novel_cluster_3",ifelse(scrna@meta.data$var_cluster==8,"Neural_crest_progenitors",ifelse(scrna@meta.data$var_cluster==13,"Novel_cluster_5",ifelse(scrna@meta.data$var_cluster==14,"Novel_cluster_6","NA"))))))))))))
-}
-
+  celltype=as.data.frame(read.csv("celltype.csv"))
+  colnames(celltype)=c("clust","var_celltype")
+  scrna@meta.data=left_join(scrna@meta.data,celltype,by=c("var_cluster"="clust"))
   scrna <- SetAllIdent(object = scrna, id = "var_celltype")
-  
+}else{
+  #Else set the cluster of selected resolution as the identity/main group of comparison
+  scrna <- SetAllIdent(object = scrna, id = var_cluster)
+  }
+
+  #For each group, run find markers in a loop and save it in the seurat object
   scrna@misc=NA
   scrna@misc <-  vector(mode="list", length=length(levels(scrna@ident)))
   names(scrna@misc)=levels(scrna@ident)
@@ -148,4 +200,6 @@ if(addcelltype=="yes"){
     scrna@misc[[c]] <- FindMarkers(scrna,ident.1 = c) %>% tibble::rownames_to_column('gene_name')
     rownames(scrna@misc[[c]])=scrna@misc[[c]]$gene_name
   } 
+
+#Save Seurat object  
 save(scrna,file=paste(dir,"/",project,".RData",sep=""))
