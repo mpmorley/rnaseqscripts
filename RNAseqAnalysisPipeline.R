@@ -194,13 +194,16 @@ for(i in 1:length(contrastnames)){
   
   #for each limma data (corresponding to the contrast), run SPIA
   limma_sel <- k[which(abs(k$fc) > 2 & k$adj.P.Val < 0.05),]
+  mm=c("mouse","Mouse","Mm","Mus musculus","Mus_musculus")
+  hs=c("human","Human","Hs","Homo sapiens","Homo_sapiens")
+  org=ifelse(unique(pData$organism) %in% mm,"mmu",ifelse(unique(pData$organism) %in% hs,'hsa',"NA"))
   if(nrow(limma_sel)>0){
     all_genes = as.numeric(k$ENTREZID)
     sig_genes = limma_sel$fc
     names(sig_genes) = limma_sel$ENTREZID 
     sig_genes = sig_genes[complete.cases(names(sig_genes))]
     sig_genes = sig_genes[unique(names(sig_genes))] 
-    spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=ifelse(unique(pData$organism)=='mouse',"mmu",'hsa'))
+    spia[[contrastnames[i]]] <- spia(de=sig_genes, all=all_genes, organism=org)
   }else{
     spia[[contrastnames[i]]] <- data.frame()
   }
