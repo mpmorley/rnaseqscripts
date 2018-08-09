@@ -19,19 +19,37 @@ markergenes=NA #If you have a list of markergenes, enter here as a character vec
 
 
 ##################### Create funtion to process the data ##################################
-processExper <- function(dir,name,ccscale=F,type='single',org='human'){
+processExper <- function(dir,name,ccscale,type,org,merge,mergefiles=files){
 #create directory to save the plots  
 dir.create(paste0(dir,"/plots",sep=""),recursive = T)
   
-# Load the dataset
-if(type=="single"){
-inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices/mm10/",sep=""))
-}else{
-  inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices_mex/mm10/",sep=""))
-}
-
-# Initialize the Seurat object with the raw (non-normalized data).  
-scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 3, min.genes = 200,project = name)
+  if(merge==F){
+    # Load the dataset
+    if(type=="single"){
+      inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices/mm10/",sep=""))
+    }else{
+      inputdata <- Read10X(data.dir = paste(dir,"/outs/filtered_gene_bc_matrices_mex/mm10/",sep=""))
+    }
+    # Initialize the Seurat object with the raw (non-normalized data).  
+    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 3, min.genes = 200,project = name)
+  }
+  if(merge==T){
+    #check if file is provided
+    if(missing(mergefiles)){
+      stop("You need to specify mergefiles")}
+    
+    #Initialize the first object with the raw (non-normalized data) and add rest of the data 
+    inputdata <- Read10X(data.dir =mergefiles[1])
+    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = name[1])
+    cat(name[1], length(scrna@cell.names), "\n")
+    for(i in 2:length(mergefiles)){
+      tmp.data <- Read10X(data.dir =mergefiles[i])
+      tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = name[i])
+      cat(name[i], ": ", length(tmp.scrna@cell.names), "\n", sep="")
+      scrna <- MergeSeurat(scrna, tmp.scrna, do.normalize = FALSE, min.cells = 0, min.genes = 0, add.cell.id2 = name[i])
+    }
+    cat("merged: ", length(scrna@cell.names), "\n", sep="")
+  }
 
 # calculate the percent.mito values.
 if(org='mouse'){
@@ -93,7 +111,15 @@ if(ccscale==T){
 ##  org - specify if mouse/human. default is human                                                                                            ##
 ##  mergedata - choose either TRUE (T) ot FALSE(F) based on whether or not you want to merge datasets. If true, specify                       ##
 ################################################################################################################################################
-scrna <- processExper(dir='DF_E15.5_Nkx2.1',name='DF_E15.5_Nkx2.1',ccscale=T,type="single",org="mouse")
+# files=c("LairRep1_5951674413_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38",
+#         "LairRep2_6820626157_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38",
+#         "PeriphRep1_1774203746_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38",
+#         "PeriphRep2_4613556219_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38",
+#         "PulmArtery_2434052471_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38",
+#         "PulmArtery_7949795420_GRCh38_singlecell/outs/filtered_gene_bc_matrices/GRCh38")
+# name=c("LairRep1","LairRep2","PeriphRep1","PeriphRep2","PulmArtery_1","PulmArtery_2")
+
+scrna <- processExper(dir='DF_E15.5_Nkx2.1',name='DF_E15.5_Nkx2.1',ccscale=T,type="single",org="mouse",merge=F,mergefiles=files)
 
 
 #Perform linear dimensional reduction (Note: performed on the variable genes)
