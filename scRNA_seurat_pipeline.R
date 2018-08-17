@@ -52,7 +52,7 @@ dir.create(paste0(dir,"/plots",sep=""),recursive = T)
   }
 
 # calculate the percent.mito values.
-if(org='mouse'){
+if(org=='mouse'){
 mito.genes <- grep(pattern = "^mt-", x = rownames(x = scrna@data), value = TRUE)
 }else{
   mito.genes <- grep(pattern = "^MT-", x = rownames(x = scrna@data), value = TRUE)
@@ -215,7 +215,7 @@ if(addcelltype=="yes"){
   scrna <- SetAllIdent(object = scrna, id = "var_celltype")
 }else{
   #Else set the cluster of selected resolution as the identity/main group of comparison
-  scrna <- SetAllIdent(object = scrna, id = var_cluster)
+  scrna <- SetAllIdent(object = scrna, id = "var_cluster")
   }
 
   #For each group, run find markers in a loop and save it in the seurat object
