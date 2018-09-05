@@ -1,24 +1,24 @@
 #install.packages("Seurat")
 library(Seurat)
 library(dplyr)
+library(readr)
 cpallette=c("#64B2CE", "#DA5724", "#74D944", "#CE50CA", "#C0717C", "#CBD588", "#5F7FC7", 
             "#673770", "#D3D93E", "#8569D5", "#508578", "#D7C1B1", "#689030", "#AD6F3B", "#CD9BCD", 
             "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D", 
             "#8A7C64", "#599861")
 #Specify input
-dir='sampleE' #specify directory
-name='MB_human_lung_SampleE' # specify project name. 
-files=c("sampleE/rep1/filtered_gene_bc_matrices/GRCh38",
-          "sampleE/rep2/filtered_gene_bc_matrices/GRCh38")
-maxdim = 50 # Maximum number of dimensions (principle components) to compute
-mindim = 12 # Minimum number of dimensions (principle components) to compute
-maxres = 1 # Maximum number of resolutions to use to find clusters
+dir='data/control' #specify directory
+name='SC_human_lung_Pulm_Sample_2' # specify project name. 
+files=c("data/control/mm10/")
+org='mouse'
+maxdim = 75 # Maximum number of dimensions (principle components) to compute
+mindim = 10 # Minimum number of dimensions (principle components) to compute
+maxres = 1.2 # Maximum number of resolutions to use to find clusters
 minres = 0.4 # Minimum number of resolutions to use to find clusters
 markergenes=NA #If you have a list of markergenes, enter here as a character vector or leave it as NA. Keep in mind the organism and use the right genenames
-markergenes <- c("SFTPC","AGER","MSMB","SCGB1A1", "SCGB3A2","DCN","ACTA2","PECAM1","VWF","PTPRC","FOXJ1","KRT17")
-mouseorthologfile <- '~/NGSshare/homologs/mouse_human.csv'
-
-
+#markergenes <- c("PDGFRA","DCN","ACTA2","CD34","COL3A1","MYH11","ITGA8","PDGFRB","DES")
+mouseorthologfile <- '~/dsdata/NGSshare/homologs/mouse_human.csv'
+paramsweep=F
 
 #Note: Occasionally the program might throw an error if one or multiple marker genes entered is not present in the dataset (Probably filtered out due to low expression).
 # In that case, check genename for typos (also case as the program is case-sensitive) or else remove it from the list. 
@@ -28,25 +28,25 @@ dir.create(paste0(dir,"/seurat/plots",sep=""),recursive = T)
 
 
 ##################### Create funtion to process the data ##################################
-processExper <- function(dir,name,ccscale,org,merge,mergefiles=files){
+processExper <- function(dir,name,ccscale=T,org,files){
+  try(if(length(files)>0) stop("No files"))
   
-  if(merge==F){
+  if(length(files)==1){
     # Load the dataset
-    inputdata <- Read10X(data.dir = mergefiles[1])
+    inputdata <- Read10X(data.dir =files[1])
     # Initialize the Seurat object with the raw (non-normalized data).  
     scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200,project = name)
-  }
-  if(merge==T){
+  }else{
     #check if file is provided
     if(missing(mergefiles)){
       stop("You need to specify mergefiles")}
     
     #Initialize the first object with the raw (non-normalized data) and add rest of the data 
-    inputdata <- Read10X(data.dir =mergefiles[1])
+    inputdata <- Read10X(data.dir =files[1])
     scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = name[1])
     cat(name[1], length(scrna@cell.names), "\n")
     for(i in 2:length(mergefiles)){
-      tmp.data <- Read10X(data.dir =mergefiles[i])
+      tmp.data <- Read10X(data.dir =files[i])
       tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = name[i])
       cat(name[i], ": ", length(tmp.scrna@cell.names), "\n", sep="")
       scrna <- MergeSeurat(scrna, tmp.scrna, do.normalize = FALSE, min.cells = 0, min.genes = 0, add.cell.id2 = name[i])
@@ -117,7 +117,7 @@ processExper <- function(dir,name,ccscale,org,merge,mergefiles=files){
 
 
 
-scrna <- processExper(dir=dir,name=name,ccscale=T,org="human",merge=F,mergefiles=files)
+scrna <- processExper(dir=dir,name=name,ccscale=T,org=org,files=files)
 
 
 #Perform linear dimensional reduction (Note: performed on the variable genes)
@@ -138,11 +138,15 @@ dev.off()
 pdf(file=paste(dir,"/seurat/plots/",name,"_pcheatmap_26_50.pdf",sep=""),height = 16,width = 11)
 PCHeatmap(object = scrna, pc.use = 26:50, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
 dev.off()
+pdf(file=paste(dir,"/seurat/plots/",name,"_pcheatmap_51_75.pdf",sep=""),height = 16,width = 11)
+PCHeatmap(object = scrna, pc.use = 51:75, cells.use = 500, do.balanced = TRUE, label.columns = FALSE, use.full = FALSE)
+dev.off()
+
 
 #Determine statistically significant principal components by randomly permuting a subset of the data (1% by default) and rerunning PCA
 scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim)
 
-pdf(file=paste(dir,"/seurat/plots/",name,"_jackstrawplot.pdf",sep=""),height = 7,width = 11)
+pdf(file=paste(dir,"/seurat/plots/",name,"_jackstrawplot.pdf",sep=""),height = 20,width = 11)
 JackStrawPlot(object = scrna, PCs = 1:maxdim)
 dev.off()
 
@@ -155,7 +159,7 @@ dev.off()
 save(scrna,file=paste0(dir,"/seurat/",name,'step1_.RData'))
 
 #Run tSNE,uMAP and Clustering in a loop and save the results in seperate folders within the name directory
-
+if (paramsweep==T){
 for(dim in seq(mindim,maxdim,2)){
   #Create dir for each dimension
   dir.create(paste0(dir,"/seurat/",dim,'/'))
@@ -187,8 +191,10 @@ for(dim in seq(mindim,maxdim,2)){
   }
   
 }
-
 quit()
+}
+
+
 ################################################## STOP HERE ##############################################
 ################################################################################################################################################
 ################################################################################################################################################
@@ -202,16 +208,21 @@ quit()
 ################################################################################################################################################
 ################################################################################################################################################
 
+
 #specify dim and res
-dim=22
-res=1.2
-addcelltype="yes" #choose between yes or no
+dim=38
+res=.6
+addcelltype="no" #choose between yes or no
 
 #Load the right data
 load(file=paste0(dir,"/seurat/",name,'step1_.RData'))
 
-#Rename the right resolution colum in the meta data to var_cluster
-scrna@meta.data=scrna@meta.data %>% rename("var_cluster"=paste0("res.",res))
+scrna <- RunTSNE(object = scrna, dims.use = 1:dim, do.fast = TRUE)
+scrna <- RunUMAP(object = scrna, dims.use = 1:dim, min_dist=0.5,n_neighbors = 15,metric = 'correlation')
+scrna <- RunDiffusion(object = scrna, dims.use = 1:dim)
+
+scrna <- FindClusters(scrna, reduction.type = "pca",dims.use = 1:dim, resolution = res)
+
 
 #Add celltypes if you have the information 
 #Create and excel sheet names celltypes.csv with the first column having the cluster id and second column having the celltype
@@ -223,7 +234,7 @@ if(addcelltype=="yes"){
   scrna <- SetAllIdent(object = scrna, id = "var_celltype")
 }else{
   #Else set the cluster of selected resolution as the identity/main group of comparison
-  scrna <- SetAllIdent(object = scrna, id = var_cluster)
+  scrna <- AddMetaData(scrna, scrna@ident,col.name= "var_cluster")
 }
 
 #For each group, run find markers in a loop and save it in the seurat object
