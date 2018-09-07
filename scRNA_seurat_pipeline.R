@@ -7,10 +7,10 @@ cpallette=c("#64B2CE", "#DA5724", "#74D944", "#CE50CA", "#C0717C", "#CBD588", "#
             "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D", 
             "#8A7C64", "#599861")
 #Specify input
-dir='data/control' #specify directory
-name='SC_human_lung_Pulm_Sample_2' # specify project name. 
-files=c("data/control/mm10/")
-org='mouse'
+dir='distal/hGRC38' #specify directory
+name='JZ_Tien_Human_distal' # specify project name. 
+files=c("distal/hGRC38")
+org='human'
 maxdim = 75 # Maximum number of dimensions (principle components) to compute
 mindim = 10 # Minimum number of dimensions (principle components) to compute
 maxres = 1.2 # Maximum number of resolutions to use to find clusters
@@ -27,9 +27,11 @@ paramsweep=F
 dir.create(paste0(dir,"/seurat/plots",sep=""),recursive = T)
 
 
+
+
 ##################### Create funtion to process the data ##################################
 processExper <- function(dir,name,ccscale=T,org,files){
-  try(if(length(files)>0) stop("No files"))
+  try(if(length(files)==0) stop("No files"))
   
   if(length(files)==1){
     # Load the dataset
@@ -160,38 +162,38 @@ save(scrna,file=paste0(dir,"/seurat/",name,'step1_.RData'))
 
 #Run tSNE,uMAP and Clustering in a loop and save the results in seperate folders within the name directory
 if (paramsweep==T){
-for(dim in seq(mindim,maxdim,2)){
-  #Create dir for each dimension
-  dir.create(paste0(dir,"/seurat/",dim,'/'))
-  
-  #Run tsne and umap
-  scrna <- RunTSNE(object = scrna, dims.use = 1:dim, do.fast = TRUE)
-  scrna <- RunUMAP(object = scrna, dims.use = 1:dim, min_dist=0.5,n_neighbors = 15,metric = 'correlation')
-  
-  
-  for(res in seq(minres,maxres,0.2)){
-    scrna <- FindClusters(scrna, reduction.type = "pca",dims.use = 1:dim, resolution = res)
-    p1 <- plot_grid(
-      TSNEPlot(scrna, do.label = T,do.return=T,colors.use = cpallette),
-      DimPlot(scrna, reduction.use = "umap", do.label = T,do.return=T,cols.use = cpallette)
-    )
-    #dev.off()
-    save_plot(paste0(dir,"/seurat/",dim,'/tSNE_umap_dim',dim,'_res',res,'.pdf'), p1,base_height=8,base_width=12)
+  for(dim in seq(mindim,maxdim,2)){
+    #Create dir for each dimension
+    dir.create(paste0(dir,"/seurat/",dim,'/'))
     
+    #Run tsne and umap
+    scrna <- RunTSNE(object = scrna, dims.use = 1:dim, do.fast = TRUE)
+    scrna <- RunUMAP(object = scrna, dims.use = 1:dim, min_dist=0.5,n_neighbors = 15,metric = 'correlation')
+    
+    
+    for(res in seq(minres,maxres,0.2)){
+      scrna <- FindClusters(scrna, reduction.type = "pca",dims.use = 1:dim, resolution = res)
+      p1 <- plot_grid(
+        TSNEPlot(scrna, do.label = T,do.return=T,colors.use = cpallette),
+        DimPlot(scrna, reduction.use = "umap", do.label = T,do.return=T,cols.use = cpallette)
+      )
+      #dev.off()
+      save_plot(paste0(dir,"/seurat/",dim,'/tSNE_umap_dim',dim,'_res',res,'.pdf'), p1,base_height=8,base_width=12)
+      
+      
+    }
+    
+    if(is.na(markergenes)==FALSE){
+      
+      fp_tsne <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T)
+      save_plot(paste0(dir,"/seurat/",dim,'/TSNE_dim',dim,'_markergenes.pdf'),plot_grid(plotlist = fp_tsne),base_width=16,base_height=16)
+      fp_umap <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T,reduction.use = "umap")
+      save_plot(paste0(dir,"/seurat/",dim,'/UMAP_dim',dim,'_markergenes.pdf'),plot_grid(plotlist = fp_umap),base_width=16,base_height=16)
+      
+    }
     
   }
-  
-  if(is.na(markergenes)==FALSE){
-    
-    fp_tsne <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T)
-    save_plot(paste0(dir,"/seurat/",dim,'/TSNE_dim',dim,'_markergenes.pdf'),plot_grid(plotlist = fp_tsne),base_width=16,base_height=16)
-    fp_umap <- FeaturePlot(object = scrna, features.plot = markergenes, cols.use = c("lightgrey", "blue"),do.return = T,reduction.use = "umap")
-    save_plot(paste0(dir,"/seurat/",dim,'/UMAP_dim',dim,'_markergenes.pdf'),plot_grid(plotlist = fp_umap),base_width=16,base_height=16)
-    
-  }
-  
-}
-quit()
+  quit()
 }
 
 
@@ -210,7 +212,7 @@ quit()
 
 
 #specify dim and res
-dim=38
+dim=63
 res=.6
 addcelltype="no" #choose between yes or no
 
