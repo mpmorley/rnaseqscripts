@@ -1,4 +1,3 @@
-#install.packages("Seurat")
 library(Seurat)
 library(dplyr)
 library(readr)
@@ -7,9 +6,10 @@ cpallette=c("#64B2CE", "#DA5724", "#74D944", "#CE50CA", "#C0717C", "#CBD588", "#
             "#D14285", "#6DDE88", "#652926", "#7FDCC0", "#C84248", "#8569D5", "#5E738F", "#D1A33D", 
             "#8A7C64", "#599861")
 #Specify input
-dir='distal/hGRC38' #specify directory
-name='JZ_Tien_Human_distal' # specify project name. 
-files=c("distal/hGRC38")
+dir='sampleD' #specify directory
+name='MB_human_lung_SampleD' # specify project name. 
+files=c("sampleD/rep1/filtered_gene_bc_matrices/GRCh38",
+          "sampleD/rep2/filtered_gene_bc_matrices/GRCh38")
 org='human'
 maxdim = 75 # Maximum number of dimensions (principle components) to compute
 mindim = 10 # Minimum number of dimensions (principle components) to compute
@@ -17,7 +17,8 @@ maxres = 1.2 # Maximum number of resolutions to use to find clusters
 minres = 0.4 # Minimum number of resolutions to use to find clusters
 markergenes=NA #If you have a list of markergenes, enter here as a character vector or leave it as NA. Keep in mind the organism and use the right genenames
 #markergenes <- c("PDGFRA","DCN","ACTA2","CD34","COL3A1","MYH11","ITGA8","PDGFRB","DES")
-mouseorthologfile <- '~/dsdata/NGSshare/homologs/mouse_human.csv'
+#mouseorthologfile <- '~/dsdata/NGSshare/homologs/mouse_human.csv'
+mouseorthologfile <- '~/NGSshare/homologs/mouse_human.csv'
 paramsweep=F
 
 #Note: Occasionally the program might throw an error if one or multiple marker genes entered is not present in the dataset (Probably filtered out due to low expression).
@@ -25,8 +26,6 @@ paramsweep=F
 #create directory to save the plots  
 
 dir.create(paste0(dir,"/seurat/plots",sep=""),recursive = T)
-
-
 
 
 ##################### Create funtion to process the data ##################################
@@ -39,19 +38,16 @@ processExper <- function(dir,name,ccscale=T,org,files){
     # Initialize the Seurat object with the raw (non-normalized data).  
     scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200,project = name)
   }else{
-    #check if file is provided
-    if(missing(mergefiles)){
-      stop("You need to specify mergefiles")}
-    
+
     #Initialize the first object with the raw (non-normalized data) and add rest of the data 
     inputdata <- Read10X(data.dir =files[1])
-    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = name[1])
-    cat(name[1], length(scrna@cell.names), "\n")
-    for(i in 2:length(mergefiles)){
+    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = 'Rep1')
+    cat('Rep1', length(scrna@cell.names), "\n")
+    for(i in 2:length(files)){
       tmp.data <- Read10X(data.dir =files[i])
-      tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = name[i])
-      cat(name[i], ": ", length(tmp.scrna@cell.names), "\n", sep="")
-      scrna <- MergeSeurat(scrna, tmp.scrna, do.normalize = FALSE, min.cells = 0, min.genes = 0, add.cell.id2 = name[i])
+      tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = paste0('Rep',i))
+      cat('Rep', i, ": ", length(tmp.scrna@cell.names), "\n", sep="")
+      scrna <- MergeSeurat(scrna, tmp.scrna, do.normalize = FALSE, min.cells = 0, min.genes = 0, add.cell.id2 = paste0('Rep',i))
     }
     cat("merged: ", length(scrna@cell.names), "\n", sep="")
   }
@@ -67,8 +63,8 @@ processExper <- function(dir,name,ccscale=T,org,files){
   # AddMetaData adds columns to object@meta.data. metadata is a great place to stash QC stats
   scrna <- AddMetaData(object = scrna, metadata = percent.mito, col.name = "percent.mito")
   
-  pdf(file=paste(dir,"/seurat/plots/",name,"_violinplot.pdf",sep=""),height = 7,width = 11)
-  VlnPlot(object = scrna, features.plot = c("nGene", "nUMI", "percent.mito"))
+  pdf(file=paste0(dir,"/seurat/plots/",name,"_violinplot.pdf"),height = 7,width = 11)
+  VlnPlot(object = scrna, features.plot = c("nGene", "nUMI", "percent.mito"),do.return = T)
   dev.off()
   
   # Plot GenePlot
@@ -158,7 +154,7 @@ dev.off()
 
 #Save the pre clsutered and dim reduced object, we will load this after we decided on which params 
 
-save(scrna,file=paste0(dir,"/seurat/",name,'step1_.RData'))
+#save(scrna,file=paste0(dir,"/seurat/",name,'step1_.RData'))
 
 #Run tSNE,uMAP and Clustering in a loop and save the results in seperate folders within the name directory
 if (paramsweep==T){
@@ -196,7 +192,7 @@ if (paramsweep==T){
   quit()
 }
 
-
+stop()
 ################################################## STOP HERE ##############################################
 ################################################################################################################################################
 ################################################################################################################################################
@@ -212,7 +208,7 @@ if (paramsweep==T){
 
 
 #specify dim and res
-dim=63
+dim=39
 res=.6
 addcelltype="no" #choose between yes or no
 
