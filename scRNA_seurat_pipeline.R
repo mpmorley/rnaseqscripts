@@ -145,7 +145,7 @@ dev.off()
 scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim)
 
 pdf(file=paste(dir,"/seurat/plots/",name,"_jackstrawplot.pdf",sep=""),height = 20,width = 11)
-JackStrawPlot(object = scrna, PCs = 1:maxdim)
+scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim,do.par=T)
 dev.off()
 
 pdf(file=paste(dir,"/seurat/plots/",name,"_pcelbow.pdf",sep=""),height = 7,width = 11)
