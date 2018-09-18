@@ -142,10 +142,10 @@ dev.off()
 
 
 #Determine statistically significant principal components by randomly permuting a subset of the data (1% by default) and rerunning PCA
-scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim)
+scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim,do.par=T)
 
 pdf(file=paste(dir,"/seurat/plots/",name,"_jackstrawplot.pdf",sep=""),height = 20,width = 11)
-scrna <- JackStraw(object = scrna, num.replicate = 100,num.pc=maxdim,do.par=T)
+JackStrawPlot(object = scrna, PCs = 1:maxdim)
 dev.off()
 
 pdf(file=paste(dir,"/seurat/plots/",name,"_pcelbow.pdf",sep=""),height = 7,width = 11)
