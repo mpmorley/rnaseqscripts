@@ -171,7 +171,7 @@ dev.off()
 
 try(if(exists("dim")) stop("Dim isn't define, please set the number of dims"))
 
-dim=30
+dim=
 addcelltype="no" #choose between yes or no
 
 ### Loop over a few resolution choices, 0.6 is last, it's the default and typically works well. 
@@ -190,7 +190,7 @@ scrna <- RunUMAP(object = scrna, dims.use = 1:dim, min_dist=0.5,n_neighbors = 30
 # you can change the n_neihbor and min_dist param 
 # 
 ###################################################  
-DimPlot(scrna,reduction.use = 'umap')
+DimPlot(scrna,reduction.use = 'umap',cols.use = cpallette)
 
   
 ####################################################################  
