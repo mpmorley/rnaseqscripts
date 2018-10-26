@@ -174,10 +174,17 @@ try(if(exists("dim")) stop("Dim isn't define, please set the number of dims"))
 dim=
 addcelltype="no" #choose between yes or no
 
+
+
 ### Loop over a few resolution choices, 0.6 is last, it's the default and typically works well. 
 for(res in c(0.4,0.8,1.0,1.2,0.6)){
   scrna <- FindClusters(scrna, reduction.type = "pca",dims.use = 1:dim, resolution = res)
+  scrna <- AddMetaData(scrna, scrna@ident,col.name= paste0("var_cluster_altres_",res))
 }
+
+scrna@meta.data <-select(scrna@meta.data, -starts_with("res"))
+scrna <- AddMetaData(scrna, scrna@ident,col.name= "var_cluster")
+
 
 ### Run various Dimension reduction techinques, Diffusion Maps takes while so I typically do not run it. 
 scrna <- RunTSNE(object = scrna, dims.use = 1:dim, do.fast = TRUE)
@@ -190,7 +197,7 @@ scrna <- RunUMAP(object = scrna, dims.use = 1:dim, min_dist=0.5,n_neighbors = 30
 # you can change the n_neihbor and min_dist param 
 # 
 ###################################################  
-DimPlot(scrna,reduction.use = 'umap',cols.use = cpallette)
+DimPlot(scrna,reduction.use = 'umap',cols.use = cpallette,group.by = 'var_cluster_altres_0.4')
 
   
 ####################################################################  
@@ -204,9 +211,6 @@ if(addcelltype=="yes"){
   colnames(celltype)=c("clust","var_celltype")
   scrna@meta.data=left_join(scrna@meta.data,celltype,by=c("var_cluster"="clust"))
   scrna <- SetAllIdent(object = scrna, id = "var_celltype")
-}else{
-  #Else set the cluster of selected resolution as the identity/main group of comparison
-  scrna <- AddMetaData(scrna, scrna@ident,col.name= "var_cluster")
 }
 
 #For each group, run find markers in a loop and save it in the seurat object
@@ -220,3 +224,7 @@ for(c in levels(scrna@ident)){
 
 #Save Seurat object  
 save(scrna,file=paste(outdir,"/",projectname,".RData",sep=""))
+
+
+
+    
