@@ -43,23 +43,25 @@ dir.create(plotdir,recursive = T)
 ##  org - specify if mouse/human. default is human                                                                                            ##
 ##  mergedata - choose either TRUE (T) ot FALSE(F) based on whether or not you want to merge datasets. If true, specify                       ##
 ################################################################################################################################################
-processExper <- function(dir,name,ccscale=T,org,files){
+processExper <- function(dir,name,ccscale=T,org,files,filtergenes=NULL){
   try(if(length(files)==0) stop("No files"))
   
   if(length(files)==1){
     # Load the dataset
     inputdata <- Read10X(data.dir =files[1])
+    colnames( inputdata) <- paste0(colnames(inputdata), '_',name)
+    
     # Initialize the Seurat object with the raw (non-normalized data).  
     scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200,project = name)
   }else{
     
     #Initialize the first object with the raw (non-normalized data) and add rest of the data 
     inputdata <- Read10X(data.dir =files[1])
-    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = 'Rep1')
+    scrna <- CreateSeuratObject(raw.data = inputdata, min.cells = 10, min.genes = 200, project = name)
     cat('Rep1', length(scrna@cell.names), "\n")
     for(i in 2:length(files)){
       tmp.data <- Read10X(data.dir =files[i])
-      tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = paste0('Rep',i))
+      tmp.scrna <- CreateSeuratObject(raw.data = tmp.data, min.cells = 10, min.genes = 200, project = name)
       cat('Rep', i, ": ", length(tmp.scrna@cell.names), "\n", sep="")
       scrna <- MergeSeurat(scrna, tmp.scrna, do.normalize = FALSE, min.cells = 0, min.genes = 0, add.cell.id2 = paste0('Rep',i))
     }
@@ -91,6 +93,17 @@ processExper <- function(dir,name,ccscale=T,org,files){
   # Filter out cells that have unique gene counts less than 500 
   scrna <- FilterCells(object = scrna, subset.names = c("nGene", "percent.mito"), 
                        low.thresholds = c(500, -Inf), high.thresholds = c(Inf, 0.05))
+  
+  
+  if(length(filtergenes)>0){
+    for(gene in filtergenes){
+      try(
+      scrna <- FilterCells(object = scrna, subset.names = gene, 
+                         low.thresholds = c(-Inf), high.thresholds = c(1))
+      )
+    }
+  }
+  
   
   #normalize data
   scrna <- NormalizeData(object = scrna, normalization.method = "LogNormalize",scale.factor = 10000)
@@ -223,7 +236,7 @@ for(c in levels(scrna@ident)){
 } 
 
 #Save Seurat object  
-save(scrna,file=paste(outdir,"/",projectname,".RData",sep=""))
+save(scrna,file=paste0(outdir,"/",projectname,".RData"))
 
 
 
